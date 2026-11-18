@@ -232,7 +232,7 @@
         <input type="text" id="m-supervisor" placeholder="Nombre del supervisor" />
       </div>
       <div class="form-group">
-        <label>Fotografía del Contenedor</label>
+        <label>Fotografía del Contenedor (Cámara / Galería)</label>
         <input type="file" id="m-foto-input" accept="image/*" capture="environment" onchange="procesarFoto(event)" />
       </div>
       <div class="form-group full" id="preview-box" style="display:none;">
@@ -541,7 +541,7 @@ function capturarGPS() {
   );
 }
 
-// Comprime la imagen a máx 600px para no saturar la memoria y permitir sincronización rápida
+// Comprime la imagen a máx 600px para almacenamiento eficiente
 function procesarFoto(event) {
   const file = event.target.files[0];
   if (!file) return;
