@@ -27,7 +27,7 @@
     header h1 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
     .badge-live { background: rgba(16,185,129,.15); color: var(--primary); padding: 3px 8px; border-radius: 999px; font-size: 0.75rem; border: 1px solid rgba(16,185,129,.4); }
     .container { max-width: 1400px; margin: 0 auto; padding: 16px; }
-
+    
     /* KPIs */
     .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
     .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
@@ -60,7 +60,7 @@
     .grid-main { display: grid; grid-template-columns: 1fr; gap: 16px; }
     @media (min-width: 1024px) { .grid-main { grid-template-columns: 420px 1fr; } }
     #map { height: 540px; border-radius: 10px; border: 1px solid var(--border); z-index: 1; }
-
+    
     .table-wrap {
       background: var(--card); border: 1px solid var(--border); border-radius: 10px;
       overflow: auto; max-height: 540px;
@@ -78,31 +78,69 @@
 
     .thumb { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
 
-    /* Popup en Mapa (optimizado para móvil) */
-    .leaflet-popup-content { max-width: 240px; line-height: 1.4; }
-    .popup-foto-wrap { margin-top: 6px; }
-    .popup-foto {
-      display: block;
-      width: 210px;
-      max-width: 100%;
-      height: 135px;
-      object-fit: cover;
+    /* Popup del mapa adaptable en teléfono y PC */
+    .leaflet-popup-content {
+      margin: 10px 12px;
+      line-height: 1.4;
+      font-size: 0.85rem;
+      max-height: 68vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .popup-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 190px;
+    }
+    .popup-photo-wrap {
+      margin-top: 4px;
+      background: #0b1120;
       border-radius: 6px;
+      padding: 4px;
       border: 1px solid #cbd5e1;
-      background: #e2e8f0;
+      text-align: center;
+    }
+    .popup-photo {
+      display: block;
+      width: 100%;
+      max-width: 240px;
+      max-height: 180px;
+      height: auto;
+      object-fit: contain;
+      margin: 0 auto;
+      border-radius: 4px;
+      cursor: zoom-in;
+    }
+    .popup-photo-hint {
+      display: block;
+      font-size: 0.7rem;
+      color: #475569;
+      margin-top: 3px;
+    }
+    .popup-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
     }
     .popup-btn {
-      margin-top: 8px;
-      padding: 7px 11px;
-      border-radius: 6px;
-      border: none;
-      background: #10b981;
-      color: #052e16;
-      font-weight: 700;
-      font-size: 0.8rem;
+      flex: 1;
+      padding: 6px 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 5px;
+      border: 1px solid #0f172a;
+      background: #0f172a;
+      color: #f8fafc;
       cursor: pointer;
     }
-
+    .popup-btn-sec {
+      background: #e2e8f0;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+    
     /* Modal */
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none;
@@ -117,7 +155,29 @@
     .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
     .form-group label { font-size: 0.78rem; color: var(--muted); }
     .full { grid-column: 1 / -1; }
-    .preview-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-top: 6px; background: #0b1120; }
+    .preview-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-top: 6px; background: #0b1120; cursor: zoom-in; }
+
+    /* Visor de foto a pantalla completa */
+    .photo-viewer-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.92); display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 16px; z-index: 10000;
+    }
+    .photo-viewer-img {
+      max-width: 96vw;
+      max-height: 80vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.6);
+    }
+    .photo-viewer-caption {
+      color: #e2e8f0;
+      font-size: 0.85rem;
+      margin-top: 10px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -183,7 +243,7 @@
     <div>
       <div id="map"></div>
       <p style="font-size:0.76rem; color:var(--muted); margin-top:6px;">
-        🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Toca cualquier marcador para ver su foto y datos.
+        🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Toca o haz clic en un marcador para ver detalles y foto.
       </p>
     </div>
 
@@ -261,8 +321,7 @@
         <input type="file" id="m-foto-input" accept="image/*" capture="environment" onchange="procesarFoto(event)" />
       </div>
       <div class="form-group full" id="preview-box" style="display:none;">
-        <img id="m-preview" class="preview-img" alt="Vista previa de la foto" />
-        <small id="foto-status" style="color:var(--muted); font-size:0.74rem;"></small>
+        <img id="m-preview" class="preview-img" onclick="verFotoActualModal()" title="Toca para ampliar" />
       </div>
       <div class="form-group full">
         <label>Observaciones de Campo</label>
@@ -276,12 +335,16 @@
   </div>
 </div>
 
+<!-- Visor de Foto Ampliada (PC y Teléfono) -->
+<div class="photo-viewer-backdrop" id="photoViewerBackdrop" onclick="closePhotoViewer()">
+  <img id="photoViewerImg" class="photo-viewer-img" onclick="event.stopPropagation()" alt="Foto del contenedor" />
+  <div class="photo-viewer-caption" id="photoViewerCaption"></div>
+  <button type="button" class="btn btn-outline" style="margin-top:12px; background:#0f172a;" onclick="closePhotoViewer()">✕ Cerrar Foto</button>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const STORAGE_KEY = 'pirai_contenedores_v1';
-// Si subes fotos a una carpeta "fotos/" en tu repo de GitHub (ej. fotos/CONT-110.jpg), se mostrarán automáticamente en el teléfono.
-const REPO_PHOTOS_FOLDER = 'fotos/';
-
 const INITIAL_DATA = [
   {id:"CONT-001",lugar:"COMERCIAL CHIRIGUANO",cantidad:3,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
   {id:"CONT-002",lugar:"PARQUES Y JARDINES",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
@@ -412,20 +475,10 @@ const INITIAL_DATA = [
   {id:"CONT-127",lugar:"Mercado Paraíso",cantidad:1,distrito:9,tipo:"Contenedor 10 m³",lat:-17.8551121,lng:-63.1983607,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"}
 ];
 
-function loadInitialRecords() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return INITIAL_DATA;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length ? parsed : INITIAL_DATA;
-  } catch {
-    return INITIAL_DATA;
-  }
-}
-
-let records = loadInitialRecords();
+let records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || INITIAL_DATA;
 let currentPhotoBase64 = '';
 
+// Inicializar Mapa centrado en Santa Cruz de la Sierra
 const map = L.map('map').setView([-17.7833, -63.1821], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap'
@@ -438,28 +491,49 @@ function getMarkerColor(tipo) {
   return '#10b981';
 }
 
-function escapeHtml(text) {
-  return String(text || '')
+function normalizarFotoSrc(foto) {
+  if (!foto || typeof foto !== 'string') return '';
+  const limpia = foto.trim();
+  if (!limpia) return '';
+  if (limpia.startsWith('data:image/') || limpia.startsWith('http://') || limpia.startsWith('https://') || limpia.startsWith('/')) {
+    return limpia;
+  }
+  return `data:image/jpeg;base64,${limpia}`;
+}
+
+function escapeAttr(str) {
+  return String(str || '')
     .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/>/g, '&gt;');
 }
 
-function isValidImageSrc(foto) {
-  return typeof foto === 'string' && (
-    foto.startsWith('data:image/') ||
-    foto.startsWith('http://') ||
-    foto.startsWith('https://') ||
-    foto.startsWith('./') ||
-    foto.startsWith('fotos/')
-  );
+function openPhotoViewer(src, caption = '') {
+  const normalized = normalizarFotoSrc(src);
+  if (!normalized) return;
+  document.getElementById('photoViewerImg').src = normalized;
+  document.getElementById('photoViewerCaption').textContent = caption;
+  document.getElementById('photoViewerBackdrop').style.display = 'flex';
 }
 
-function getRecordPhotoSrc(record) {
-  if (isValidImageSrc(record.foto)) return record.foto;
-  if (record.id) return `${REPO_PHOTOS_FOLDER}${encodeURIComponent(record.id)}.jpg`;
-  return '';
+function closePhotoViewer() {
+  document.getElementById('photoViewerBackdrop').style.display = 'none';
+  document.getElementById('photoViewerImg').src = '';
+}
+
+function verFotoPorId(id) {
+  const r = records.find(x => x.id === id);
+  if (!r || !r.foto) return;
+  openPhotoViewer(r.foto, `${r.id} - ${r.lugar} (Distrito ${r.distrito})`);
+}
+
+function verFotoActualModal() {
+  const id = document.getElementById('m-id').value;
+  const lugar = document.getElementById('m-lugar').value.trim();
+  if (!currentPhotoBase64) return;
+  openPhotoViewer(currentPhotoBase64, `${id || 'Nuevo'} - ${lugar}`);
 }
 
 function render() {
@@ -474,119 +548,109 @@ function render() {
     const matchD = !dist || String(r.distrito) === dist;
     const matchT = !tipo || r.tipo === tipo;
     const matchE = !est || r.estado === est;
-    const hasGps = r.lat !== null && r.lng !== null && r.lat !== '' && r.lng !== '';
+    const hasGps = r.lat !== null && r.lng !== null && r.lat !== '';
     const matchG = !gps || (gps === 'SI' ? hasGps : !hasGps);
     return matchQ && matchD && matchT && matchE && matchG;
   });
 
+  // Actualizar KPIs globales
   const totalUnidades = records.reduce((s, r) => s + Number(r.cantidad || 0), 0);
-  const conGps = records.filter(r => r.lat !== null && r.lng !== null && r.lat !== '' && r.lng !== '').length;
+  const conGps = records.filter(r => r.lat && r.lng).length;
   const operativos = records.filter(r => r.estado === 'Operativo').length;
   const novedades = records.filter(r => r.estado !== 'Operativo').length;
-  const conFoto = records.filter(r => isValidImageSrc(r.foto)).length;
+  const conFoto = records.filter(r => normalizarFotoSrc(r.foto)).length;
 
   document.getElementById('kpi-puntos').textContent = records.length;
-  document.getElementById('kpi-gps').textContent = `${conGps} con GPS (${Math.round(conGps / records.length * 100)}%)`;
+  document.getElementById('kpi-gps').textContent = `${conGps} con GPS (${Math.round(conGps/records.length*100)}%)`;
   document.getElementById('kpi-unidades').textContent = totalUnidades;
   document.getElementById('kpi-op').textContent = operativos;
   document.getElementById('kpi-nov').textContent = novedades;
   document.getElementById('kpi-fotos').textContent = conFoto;
 
+  // Render Tabla y Marcadores
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
   markersLayer.clearLayers();
 
+  const isMobile = window.innerWidth < 640;
+  const popupMaxWidth = isMobile ? Math.max(220, window.innerWidth - 70) : 340;
+
   filtered.forEach(r => {
     const hasGps = r.lat !== null && r.lng !== null && r.lat !== '' && r.lng !== '';
-    const hasStoredPhoto = isValidImageSrc(r.foto);
-    const popupPhotoSrc = getRecordPhotoSrc(r);
     const mapsLink = hasGps ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : null;
+    const fotoSrc = normalizarFotoSrc(r.foto);
+    const safeLugar = escapeAttr(r.lugar);
+    const safeId = escapeAttr(r.id);
 
     if (hasGps) {
       const marker = L.circleMarker([Number(r.lat), Number(r.lng)], {
-        radius: 8,
+        radius: isMobile ? 10 : 8,
         fillColor: getMarkerColor(r.tipo),
         color: '#fff',
         weight: 1.5,
-        fillOpacity: 0.9
+        fillOpacity: 0.92
       });
 
-      const container = document.createElement('div');
-      container.innerHTML = `
-        <strong>${escapeHtml(r.id)} - ${escapeHtml(r.lugar)}</strong><br/>
-        Tipo: ${escapeHtml(r.tipo)} (${Number(r.cantidad || 0)} unid.)<br/>
-        Distrito: ${escapeHtml(r.distrito)} | Estado: <b>${escapeHtml(r.estado)}</b><br/>
+      const fotoHtml = fotoSrc
+        ? `<div class="popup-photo-wrap">
+             <img src="${escapeAttr(fotoSrc)}" class="popup-photo" alt="Foto ${safeId}" onclick="verFotoPorId('${safeId}')" />
+             <span class="popup-photo-hint">Toca la foto para ampliar</span>
+           </div>`
+        : `<small style="color:#64748b;">Sin foto registrada</small>`;
+
+      const popupHtml = `
+        <div class="popup-box">
+          <div>
+            <strong>${safeId} - ${safeLugar}</strong><br/>
+            <span>Tipo: ${escapeAttr(r.tipo)} (${escapeAttr(r.cantidad)} unid.)</span><br/>
+            <span>Distrito: ${escapeAttr(r.distrito)} | Estado: <b>${escapeAttr(r.estado)}</b></span>
+            ${r.observaciones ? `<br/><small style="color:#334155;">Obs: ${escapeAttr(r.observaciones)}</small>` : ''}
+          </div>
+          ${fotoHtml}
+          <div class="popup-actions">
+            <button type="button" class="popup-btn" onclick="openModal('${safeId}')">✏️ Campo</button>
+            ${fotoSrc ? `<button type="button" class="popup-btn popup-btn-sec" onclick="verFotoPorId('${safeId}')">🔍 Ver Foto</button>` : ''}
+          </div>
+        </div>
       `;
 
-      if (popupPhotoSrc) {
-        const photoWrap = document.createElement('div');
-        photoWrap.className = 'popup-foto-wrap';
-
-        const img = document.createElement('img');
-        img.src = popupPhotoSrc;
-        img.alt = `Foto ${r.id}`;
-        img.className = 'popup-foto';
-        img.onload = () => {
-          if (marker.getPopup() && marker.getPopup().isOpen()) {
-            marker.getPopup().update();
-          }
-        };
-        img.onerror = () => {
-          photoWrap.innerHTML = `<small style="color:#64748b;">Sin foto en este dispositivo. Toca "Actualizar en campo" para tomarla.</small>`;
-          if (marker.getPopup() && marker.getPopup().isOpen()) {
-            marker.getPopup().update();
-          }
-        };
-
-        photoWrap.appendChild(img);
-        container.appendChild(photoWrap);
-      }
-
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'popup-btn';
-      btn.textContent = '✏️ Actualizar en campo';
-      btn.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        marker.closePopup();
-        openModal(r.id);
-      });
-      container.appendChild(btn);
-
-      marker.bindPopup(container, { maxWidth: 245, autoPan: true });
-      marker.on('popupopen', (e) => {
-        if (e.popup) e.popup.update();
+      marker.bindPopup(popupHtml, {
+        maxWidth: popupMaxWidth,
+        autoPan: true,
+        keepInView: true
       });
       marker.addTo(markersLayer);
     }
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${escapeHtml(r.id)}</strong></td>
+      <td><strong>${safeId}</strong></td>
       <td>
-        <div>${escapeHtml(r.lugar)}</div>
-        <small style="color:var(--muted)">${escapeHtml(r.ultimaActualizacion || '')}${r.supervisor ? ' • Sup: ' + escapeHtml(r.supervisor) : ''}</small>
+        <div>${safeLugar}</div>
+        <small style="color:var(--muted)">${escapeAttr(r.ultimaActualizacion || '')}${r.supervisor ? ' • Sup: '+escapeAttr(r.supervisor) : ''}</small>
       </td>
-      <td>D-${escapeHtml(r.distrito)}</td>
-      <td>${escapeHtml(r.tipo.replace('Contenedor ', ''))}</td>
-      <td><strong>${Number(r.cantidad || 0)}</strong></td>
+      <td>D-${escapeAttr(r.distrito)}</td>
+      <td>${escapeAttr(r.tipo.replace('Contenedor ', ''))}</td>
+      <td><strong>${escapeAttr(r.cantidad)}</strong></td>
       <td>${hasGps ? `<a href="${mapsLink}" target="_blank" style="color:#60a5fa;text-decoration:none;">📍 Ver</a>` : `<span style="color:#f87171;">Sin GPS</span>`}</td>
-      <td><span class="pill st-${escapeHtml(r.estado)}">${escapeHtml(r.estado)}</span></td>
-      <td>${hasStoredPhoto ? `<img src="${r.foto}" class="thumb" onclick="openModal('${escapeHtml(r.id)}')" alt="Miniatura ${escapeHtml(r.id)}" />` : '-'}</td>
-      <td><button class="btn btn-outline" style="padding:4px 8px;font-size:0.78rem;" onclick="openModal('${escapeHtml(r.id)}')">✏️ Campo</button></td>
+      <td><span class="pill st-${escapeAttr(r.estado)}">${escapeAttr(r.estado)}</span></td>
+      <td>${fotoSrc ? `<img src="${escapeAttr(fotoSrc)}" class="thumb" onclick="verFotoPorId('${safeId}')" title="Ver foto" />` : '-'}</td>
+      <td><button class="btn btn-outline" style="padding:4px 8px;font-size:0.78rem;" onclick="openModal('${safeId}')">✏️ Campo</button></td>
     `;
     tbody.appendChild(tr);
   });
-
-  setTimeout(() => map.invalidateSize(), 100);
 }
+
+window.addEventListener('resize', () => {
+  render();
+  map.invalidateSize();
+});
 
 function openModal(id = null) {
   const modal = document.getElementById('modalBackdrop');
   document.getElementById('gps-status').textContent = '';
-  document.getElementById('foto-status').textContent = '';
   document.getElementById('m-foto-input').value = '';
-
+  
   if (id) {
     const r = records.find(x => x.id === id);
     document.getElementById('modalTitle').textContent = `Relevamiento: ${r.id}`;
@@ -596,11 +660,11 @@ function openModal(id = null) {
     document.getElementById('m-cantidad').value = r.cantidad;
     document.getElementById('m-tipo').value = r.tipo;
     document.getElementById('m-estado').value = r.estado;
-    document.getElementById('m-lat').value = r.lat ?? '';
-    document.getElementById('m-lng').value = r.lng ?? '';
+    document.getElementById('m-lat').value = r.lat || '';
+    document.getElementById('m-lng').value = r.lng || '';
     document.getElementById('m-supervisor').value = r.supervisor || '';
     document.getElementById('m-obs').value = r.observaciones || '';
-    currentPhotoBase64 = isValidImageSrc(r.foto) ? r.foto : '';
+    currentPhotoBase64 = normalizarFotoSrc(r.foto || '');
   } else {
     document.getElementById('modalTitle').textContent = 'Registrar Nuevo Punto de Contenedor';
     document.getElementById('m-id').value = '';
@@ -619,10 +683,8 @@ function openModal(id = null) {
   if (currentPhotoBase64) {
     document.getElementById('preview-box').style.display = 'block';
     document.getElementById('m-preview').src = currentPhotoBase64;
-    document.getElementById('foto-status').textContent = 'Foto cargada en este dispositivo.';
   } else {
     document.getElementById('preview-box').style.display = 'none';
-    document.getElementById('m-preview').removeAttribute('src');
   }
   modal.style.display = 'flex';
 }
@@ -645,7 +707,7 @@ function capturarGPS() {
       st.textContent = `✅ Ubicación capturada (Precisión: ±${Math.round(pos.coords.accuracy)}m)`;
       st.style.color = '#34d399';
     },
-    () => {
+    err => {
       st.textContent = '⚠️ Error GPS: Activa la ubicación del teléfono y otorga permisos.';
       st.style.color = '#f87171';
     },
@@ -653,29 +715,24 @@ function capturarGPS() {
   );
 }
 
+// Comprime la imagen a máx 600px para no saturar la memoria y permitir sincronización rápida
 function procesarFoto(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const st = document.getElementById('foto-status');
-  st.textContent = 'Comprimiendo foto para móvil...';
-
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX_W = 480;
+      const MAX_W = 600;
       const scale = Math.min(1, MAX_W / img.width);
-      canvas.width = Math.max(1, Math.round(img.width * scale));
-      canvas.height = Math.max(1, Math.round(img.height * scale));
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.62);
+      currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.72);
       document.getElementById('m-preview').src = currentPhotoBase64;
       document.getElementById('preview-box').style.display = 'block';
-      const kb = Math.round((currentPhotoBase64.length * 3) / 4 / 1024);
-      st.textContent = `✅ Foto lista (~${kb} KB).`;
-      st.style.color = '#34d399';
     };
     img.src = e.target.result;
   };
@@ -698,37 +755,35 @@ function saveRecord() {
     cantidad: Number(document.getElementById('m-cantidad').value),
     tipo: document.getElementById('m-tipo').value,
     estado: document.getElementById('m-estado').value,
-    lat: latVal !== '' && !Number.isNaN(parseFloat(latVal)) ? parseFloat(latVal) : null,
-    lng: lngVal !== '' && !Number.isNaN(parseFloat(lngVal)) ? parseFloat(lngVal) : null,
+    lat: latVal ? parseFloat(latVal) : null,
+    lng: lngVal ? parseFloat(lngVal) : null,
     supervisor: document.getElementById('m-supervisor').value.trim(),
     observaciones: document.getElementById('m-obs').value.trim(),
     foto: currentPhotoBase64,
     ultimaActualizacion: now
   };
 
-  const previousRecords = [...records];
   if (id) {
     const idx = records.findIndex(x => x.id === id);
-    if (idx !== -1) records[idx] = payload;
+    records[idx] = payload;
   } else {
     records.unshift(payload);
   }
 
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-    closeModal();
-    render();
-  } catch {
-    records = previousRecords;
-    alert('⚠️ El espacio de almacenamiento del navegador está lleno en este dispositivo. Exporta un Respaldo JSON o guarda sin foto en algunos puntos.');
+  } catch (err) {
+    alert('⚠️ Espacio de almacenamiento lleno en el navegador. Exporta un Respaldo JSON y elimina fotos antiguas.');
   }
+  closeModal();
+  render();
 }
 
 function exportCSV() {
   const headers = ['ID','Lugar','Distrito','Tipo','Cantidad','Latitud','Longitud','Link_Maps','Estado','Supervisor','Observaciones','Ultima_Actualizacion'];
   const rows = records.map(r => [
     r.id, `"${r.lugar.replace(/"/g,'""')}"`, r.distrito, `"${r.tipo}"`, r.cantidad,
-    r.lat ?? '', r.lng ?? '', (r.lat !== null && r.lng !== null && r.lat !== '' && r.lng !== '') ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : '',
+    r.lat || '', r.lng || '', (r.lat && r.lng) ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : '',
     r.estado, `"${r.supervisor || ''}"`, `"${(r.observaciones || '').replace(/"/g,'""')}"`, `"${r.ultimaActualizacion || ''}"`
   ]);
   const csv = '\uFEFF' + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
