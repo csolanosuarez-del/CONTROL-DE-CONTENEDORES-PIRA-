@@ -78,28 +78,28 @@
 
     .thumb { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
 
-    /* Popup en Mapa (compatible con móvil) */
+    /* Popup en Mapa (optimizado para móvil) */
     .leaflet-popup-content { max-width: 240px; line-height: 1.4; }
+    .popup-foto-wrap { margin-top: 6px; }
     .popup-foto {
       display: block;
-      width: 100%;
-      max-width: 210px;
-      height: auto;
-      max-height: 140px;
+      width: 210px;
+      max-width: 100%;
+      height: 135px;
       object-fit: cover;
-      margin-top: 6px;
       border-radius: 6px;
       border: 1px solid #cbd5e1;
+      background: #e2e8f0;
     }
     .popup-btn {
       margin-top: 8px;
-      padding: 6px 10px;
-      border-radius: 5px;
+      padding: 7px 11px;
+      border-radius: 6px;
       border: none;
       background: #10b981;
       color: #052e16;
       font-weight: 700;
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       cursor: pointer;
     }
 
@@ -183,7 +183,7 @@
     <div>
       <div id="map"></div>
       <p style="font-size:0.76rem; color:var(--muted); margin-top:6px;">
-        🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Haz clic o toca cualquier marcador para inspeccionar.
+        🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Toca cualquier marcador para ver su foto y datos.
       </p>
     </div>
 
@@ -279,6 +279,9 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const STORAGE_KEY = 'pirai_contenedores_v1';
+// Si subes fotos a una carpeta "fotos/" en tu repo de GitHub (ej. fotos/CONT-110.jpg), se mostrarán automáticamente en el teléfono.
+const REPO_PHOTOS_FOLDER = 'fotos/';
+
 const INITIAL_DATA = [
   {id:"CONT-001",lugar:"COMERCIAL CHIRIGUANO",cantidad:3,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
   {id:"CONT-002",lugar:"PARQUES Y JARDINES",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
@@ -444,7 +447,19 @@ function escapeHtml(text) {
 }
 
 function isValidImageSrc(foto) {
-  return typeof foto === 'string' && (foto.startsWith('data:image/') || foto.startsWith('http://') || foto.startsWith('https://'));
+  return typeof foto === 'string' && (
+    foto.startsWith('data:image/') ||
+    foto.startsWith('http://') ||
+    foto.startsWith('https://') ||
+    foto.startsWith('./') ||
+    foto.startsWith('fotos/')
+  );
+}
+
+function getRecordPhotoSrc(record) {
+  if (isValidImageSrc(record.foto)) return record.foto;
+  if (record.id) return `${REPO_PHOTOS_FOLDER}${encodeURIComponent(record.id)}.jpg`;
+  return '';
 }
 
 function render() {
@@ -483,7 +498,8 @@ function render() {
 
   filtered.forEach(r => {
     const hasGps = r.lat !== null && r.lng !== null && r.lat !== '' && r.lng !== '';
-    const hasPhoto = isValidImageSrc(r.foto);
+    const hasStoredPhoto = isValidImageSrc(r.foto);
+    const popupPhotoSrc = getRecordPhotoSrc(r);
     const mapsLink = hasGps ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : null;
 
     if (hasGps) {
@@ -502,9 +518,12 @@ function render() {
         Distrito: ${escapeHtml(r.distrito)} | Estado: <b>${escapeHtml(r.estado)}</b><br/>
       `;
 
-      if (hasPhoto) {
+      if (popupPhotoSrc) {
+        const photoWrap = document.createElement('div');
+        photoWrap.className = 'popup-foto-wrap';
+
         const img = document.createElement('img');
-        img.src = r.foto;
+        img.src = popupPhotoSrc;
         img.alt = `Foto ${r.id}`;
         img.className = 'popup-foto';
         img.onload = () => {
@@ -513,9 +532,14 @@ function render() {
           }
         };
         img.onerror = () => {
-          img.style.display = 'none';
+          photoWrap.innerHTML = `<small style="color:#64748b;">Sin foto en este dispositivo. Toca "Actualizar en campo" para tomarla.</small>`;
+          if (marker.getPopup() && marker.getPopup().isOpen()) {
+            marker.getPopup().update();
+          }
         };
-        container.appendChild(img);
+
+        photoWrap.appendChild(img);
+        container.appendChild(photoWrap);
       }
 
       const btn = document.createElement('button');
@@ -529,7 +553,10 @@ function render() {
       });
       container.appendChild(btn);
 
-      marker.bindPopup(container, { maxWidth: 240 });
+      marker.bindPopup(container, { maxWidth: 245, autoPan: true });
+      marker.on('popupopen', (e) => {
+        if (e.popup) e.popup.update();
+      });
       marker.addTo(markersLayer);
     }
 
@@ -545,7 +572,7 @@ function render() {
       <td><strong>${Number(r.cantidad || 0)}</strong></td>
       <td>${hasGps ? `<a href="${mapsLink}" target="_blank" style="color:#60a5fa;text-decoration:none;">📍 Ver</a>` : `<span style="color:#f87171;">Sin GPS</span>`}</td>
       <td><span class="pill st-${escapeHtml(r.estado)}">${escapeHtml(r.estado)}</span></td>
-      <td>${hasPhoto ? `<img src="${r.foto}" class="thumb" onclick="openModal('${escapeHtml(r.id)}')" alt="Miniatura ${escapeHtml(r.id)}" />` : '-'}</td>
+      <td>${hasStoredPhoto ? `<img src="${r.foto}" class="thumb" onclick="openModal('${escapeHtml(r.id)}')" alt="Miniatura ${escapeHtml(r.id)}" />` : '-'}</td>
       <td><button class="btn btn-outline" style="padding:4px 8px;font-size:0.78rem;" onclick="openModal('${escapeHtml(r.id)}')">✏️ Campo</button></td>
     `;
     tbody.appendChild(tr);
