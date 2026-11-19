@@ -58,12 +58,63 @@
 
     /* Layout Map + Table */
     .grid-main { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    @media (min-width: 1024px) { .grid-main { grid-template-columns: 420px 1fr; } }
-    #map { height: 540px; border-radius: 10px; border: 1px solid var(--border); z-index: 1; }
+    @media (min-width: 1024px) { .grid-main { grid-template-columns: 440px 1fr; } }
+    #map { height: 480px; border-radius: 10px; border: 1px solid var(--border); z-index: 1; }
+
+    /* Tarjeta de inspección rápida debajo del mapa (ideal para teléfono y PC) */
+    .selected-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .selected-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .selected-card-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .selected-card-meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .selected-card-photo {
+      width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      background: #0b1120;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: zoom-in;
+      display: block;
+      margin: 8px 0;
+    }
+    .selected-card-empty {
+      background: #0b1120;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin: 8px 0;
+    }
+    .selected-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
     
     .table-wrap {
       background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      overflow: auto; max-height: 540px;
+      overflow: auto; max-height: 760px;
     }
     table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
     th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
@@ -243,8 +294,24 @@
     <div>
       <div id="map"></div>
       <p style="font-size:0.76rem; color:var(--muted); margin-top:6px;">
-        🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Toca o haz clic en un marcador para ver detalles y foto.
+        🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Toca o haz clic en un marcador para ver su foto y datos aquí abajo.
       </p>
+
+      <!-- Tarjeta fija del punto seleccionado al tocar un marcador -->
+      <div class="selected-card" id="selectedCard">
+        <div class="selected-card-header">
+          <div>
+            <div class="selected-card-title" id="sel-title">Toca un contenedor en el mapa</div>
+            <div class="selected-card-meta" id="sel-meta">Aquí se mostrará la foto y los datos del punto seleccionado.</div>
+          </div>
+          <span class="pill st-Operativo" id="sel-estado" style="display:none;">Operativo</span>
+        </div>
+        <div id="sel-media"></div>
+        <div class="selected-card-actions" id="sel-actions" style="display:none;">
+          <button type="button" class="btn btn-info" id="sel-btn-zoom" onclick="verFotoSeleccionada()" style="display:none;">🔍 Ampliar Foto</button>
+          <button type="button" class="btn btn-primary" id="sel-btn-edit" onclick="editarSeleccionado()">✏️ Actualizar / Foto</button>
+        </div>
+      </div>
     </div>
 
     <div class="table-wrap">
@@ -477,6 +544,7 @@ const INITIAL_DATA = [
 
 let records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || INITIAL_DATA;
 let currentPhotoBase64 = '';
+let selectedId = null;
 
 // Inicializar Mapa centrado en Santa Cruz de la Sierra
 const map = L.map('map').setView([-17.7833, -63.1821], 12);
@@ -536,6 +604,52 @@ function verFotoActualModal() {
   openPhotoViewer(currentPhotoBase64, `${id || 'Nuevo'} - ${lugar}`);
 }
 
+function seleccionarPunto(id) {
+  selectedId = id;
+  const r = records.find(x => x.id === id);
+  const titleEl = document.getElementById('sel-title');
+  const metaEl = document.getElementById('sel-meta');
+  const estadoEl = document.getElementById('sel-estado');
+  const mediaEl = document.getElementById('sel-media');
+  const actionsEl = document.getElementById('sel-actions');
+  const btnZoom = document.getElementById('sel-btn-zoom');
+
+  if (!r) {
+    titleEl.textContent = 'Toca un contenedor en el mapa';
+    metaEl.textContent = 'Aquí se mostrará la foto y los datos del punto seleccionado.';
+    estadoEl.style.display = 'none';
+    mediaEl.innerHTML = '';
+    actionsEl.style.display = 'none';
+    return;
+  }
+
+  const fotoSrc = normalizarFotoSrc(r.foto);
+  titleEl.textContent = `${r.id} - ${r.lugar}`;
+  metaEl.textContent = `Distrito ${r.distrito} • ${r.tipo} (${r.cantidad} unid.)${r.observaciones ? ' • ' + r.observaciones : ''}`;
+  estadoEl.textContent = r.estado;
+  estadoEl.className = `pill st-${r.estado}`;
+  estadoEl.style.display = 'inline-block';
+
+  if (fotoSrc) {
+    mediaEl.innerHTML = `<img src="${escapeAttr(fotoSrc)}" class="selected-card-photo" alt="Foto ${escapeAttr(r.id)}" onclick="verFotoSeleccionada()" title="Toca para ampliar" />`;
+    btnZoom.style.display = 'inline-flex';
+  } else {
+    mediaEl.innerHTML = `<div class="selected-card-empty">Este punto no tiene foto guardada en este dispositivo. Toca "Actualizar / Foto" para tomar o cargar una.</div>`;
+    btnZoom.style.display = 'none';
+  }
+  actionsEl.style.display = 'flex';
+}
+
+function verFotoSeleccionada() {
+  if (!selectedId) return;
+  verFotoPorId(selectedId);
+}
+
+function editarSeleccionado() {
+  if (!selectedId) return;
+  openModal(selectedId);
+}
+
 function render() {
   const q = document.getElementById('f-search').value.toLowerCase();
   const dist = document.getElementById('f-distrito').value;
@@ -584,11 +698,15 @@ function render() {
 
     if (hasGps) {
       const marker = L.circleMarker([Number(r.lat), Number(r.lng)], {
-        radius: isMobile ? 10 : 8,
+        radius: isMobile ? 12 : 8,
         fillColor: getMarkerColor(r.tipo),
         color: '#fff',
-        weight: 1.5,
-        fillOpacity: 0.92
+        weight: 2,
+        fillOpacity: 0.95
+      });
+
+      marker.on('click', () => {
+        seleccionarPunto(r.id);
       });
 
       const fotoHtml = fotoSrc
@@ -596,7 +714,7 @@ function render() {
              <img src="${escapeAttr(fotoSrc)}" class="popup-photo" alt="Foto ${safeId}" onclick="verFotoPorId('${safeId}')" />
              <span class="popup-photo-hint">Toca la foto para ampliar</span>
            </div>`
-        : `<small style="color:#64748b;">Sin foto registrada</small>`;
+        : `<small style="color:#64748b;">Sin foto en este dispositivo</small>`;
 
       const popupHtml = `
         <div class="popup-box">
@@ -639,6 +757,10 @@ function render() {
     `;
     tbody.appendChild(tr);
   });
+
+  if (selectedId) {
+    seleccionarPunto(selectedId);
+  }
 }
 
 window.addEventListener('resize', () => {
@@ -775,6 +897,7 @@ function saveRecord() {
   } catch (err) {
     alert('⚠️ Espacio de almacenamiento lleno en el navegador. Exporta un Respaldo JSON y elimina fotos antiguas.');
   }
+  selectedId = payload.id;
   closeModal();
   render();
 }
