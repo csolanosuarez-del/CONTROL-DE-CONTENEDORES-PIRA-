@@ -24,8 +24,9 @@
       background: #0b1120; border-bottom: 1px solid var(--border);
       padding: 14px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
     }
-    header h1 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+    header h1 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .badge-live { background: rgba(16,185,129,.15); color: var(--primary); padding: 3px 8px; border-radius: 999px; font-size: 0.75rem; border: 1px solid rgba(16,185,129,.4); }
+    .sync-status { font-size: 0.78rem; color: var(--muted); }
     .container { max-width: 1400px; margin: 0 auto; padding: 16px; }
     
     /* KPIs */
@@ -61,7 +62,6 @@
     @media (min-width: 1024px) { .grid-main { grid-template-columns: 440px 1fr; } }
     #map { height: 480px; border-radius: 10px; border: 1px solid var(--border); z-index: 1; }
 
-    /* Tarjeta de inspección rápida debajo del mapa */
     .selected-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -76,15 +76,8 @@
       gap: 8px;
       margin-bottom: 8px;
     }
-    .selected-card-title {
-      font-weight: 700;
-      font-size: 0.95rem;
-    }
-    .selected-card-meta {
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-top: 2px;
-    }
+    .selected-card-title { font-weight: 700; font-size: 0.95rem; }
+    .selected-card-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
     .selected-card-units {
       display: flex;
       gap: 8px;
@@ -121,11 +114,7 @@
       font-size: 0.8rem;
       margin: 8px 0;
     }
-    .selected-card-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+    .selected-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     
     .table-wrap {
       background: var(--card); border: 1px solid var(--border); border-radius: 10px;
@@ -148,7 +137,6 @@
 
     .thumb { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
 
-    /* Popup del mapa adaptable en teléfono y PC */
     .leaflet-popup-content {
       margin: 10px 12px;
       line-height: 1.4;
@@ -157,12 +145,7 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
-    .popup-box {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-width: 190px;
-    }
+    .popup-box { display: flex; flex-direction: column; gap: 6px; min-width: 190px; }
     .popup-photo-wrap {
       margin-top: 4px;
       background: #0b1120;
@@ -182,18 +165,8 @@
       border-radius: 4px;
       cursor: zoom-in;
     }
-    .popup-photo-hint {
-      display: block;
-      font-size: 0.7rem;
-      color: #475569;
-      margin-top: 3px;
-    }
-    .popup-actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-top: 4px;
-    }
+    .popup-photo-hint { display: block; font-size: 0.7rem; color: #475569; margin-top: 3px; }
+    .popup-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
     .popup-btn {
       flex: 1;
       padding: 6px 8px;
@@ -205,13 +178,8 @@
       color: #f8fafc;
       cursor: pointer;
     }
-    .popup-btn-sec {
-      background: #e2e8f0;
-      color: #0f172a;
-      border-color: #94a3b8;
-    }
+    .popup-btn-sec { background: #e2e8f0; color: #0f172a; border-color: #94a3b8; }
     
-    /* Modal */
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none;
       align-items: center; justify-content: center; padding: 16px; z-index: 9999;
@@ -227,7 +195,6 @@
     .full { grid-column: 1 / -1; }
     .preview-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-top: 6px; background: #0b1120; cursor: zoom-in; }
 
-    /* Visor de foto a pantalla completa */
     .photo-viewer-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.92); display: none;
       flex-direction: column; align-items: center; justify-content: center;
@@ -242,19 +209,19 @@
       border-radius: 8px;
       box-shadow: 0 10px 30px rgba(0,0,0,.6);
     }
-    .photo-viewer-caption {
-      color: #e2e8f0;
-      font-size: 0.85rem;
-      margin-top: 10px;
-      text-align: center;
-    }
+    .photo-viewer-caption { color: #e2e8f0; font-size: 0.85rem; margin-top: 10px; text-align: center; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>🗑️ Control de Contenedores Piraí <span class="badge-live">CAMPO & GPS</span></h1>
+  <div>
+    <h1>🗑️ Control de Contenedores Piraí <span class="badge-live">EN LÍNEA</span></h1>
+    <div class="sync-status" id="sync-status">Listo para sincronizar con Google Sheets</div>
+  </div>
   <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <button class="btn btn-outline" onclick="syncFromCloud(true)">🔄 Sincronizar</button>
+    <button class="btn btn-outline" onclick="seedCloudBase()">☁️ Subir Base a Nube</button>
     <button class="btn btn-primary" onclick="openModal()">+ Nuevo Punto</button>
     <button class="btn btn-info" onclick="exportCSV()">📥 Exportar Excel (CSV)</button>
     <button class="btn btn-outline" onclick="exportBackup()">💾 Respaldo JSON</button>
@@ -321,7 +288,6 @@
         🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Toca o haz clic en un marcador para ver su foto y unidades aquí abajo.
       </p>
 
-      <!-- Tarjeta fija del punto seleccionado al tocar un marcador -->
       <div class="selected-card" id="selectedCard">
         <div class="selected-card-header">
           <div>
@@ -435,7 +401,7 @@
   </div>
 </div>
 
-<!-- Visor de Foto Ampliada (PC y Teléfono) -->
+<!-- Visor de Foto Ampliada -->
 <div class="photo-viewer-backdrop" id="photoViewerBackdrop" onclick="closePhotoViewer()">
   <img id="photoViewerImg" class="photo-viewer-img" onclick="event.stopPropagation()" alt="Foto del contenedor" />
   <div class="photo-viewer-caption" id="photoViewerCaption"></div>
@@ -444,135 +410,136 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbz56H71xFdqaiGYgx7zNF74_yTiVbmkXzfGCsxJUj1GvbuYZ7i6OlAYketTRhwTjEOq/exec';
 const STORAGE_KEY = 'pirai_contenedores_v1';
 const INITIAL_DATA = [
-  {id:"CONT-001",lugar:"COMERCIAL CHIRIGUANO",cantidad:3,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-002",lugar:"PARQUES Y JARDINES",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-003",lugar:"CABAÑAS DEL PIRAI",cantidad:2,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-004",lugar:"AMBROSIO VILLARROEL (cementerio)",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-005",lugar:"MERCADO SAN LUIS",cantidad:2,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-006",lugar:"MERCADO 4 DE NOVIEMBRE",cantidad:6,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-007",lugar:"GASIP",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-008",lugar:"ZOOLOGICO MUNICIPAL",cantidad:3,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-009",lugar:"ACRICOLOR (Banzer 3er anillo)",cantidad:2,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-010",lugar:"SALON VELATORIO AV. BUSCH",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-011",lugar:"QUINTA MUNICIPAL",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-012",lugar:"MERCADO 12 DE OCTUBRE",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-013",lugar:"3er ANILLO EXTERNO BANZER",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-014",lugar:"RADIAL 23 EXTERNO",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-015",lugar:"AV. BUSCH",cantidad:1,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-016",lugar:"MUTUALISTA 3ER ANILLO EXTERNO (CALDOS)",cantidad:5,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-017",lugar:"MUTUALISTA ROTONDA INTERNO",cantidad:2,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-018",lugar:"MERCADO ROTONDA EXTERNO",cantidad:6,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-019",lugar:"MUTUALISTA 3ER ANILLO INTERNO (BANCOS)",cantidad:5,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-020",lugar:"MERCADO DAVID TRAPERO",cantidad:1,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-021",lugar:"HOSPITAL OBRERO",cantidad:2,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-022",lugar:"TECNOLOGICO SANTA CRUZ",cantidad:2,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-023",lugar:"SAGUAPAC AV. PARAGUA",cantidad:1,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-024",lugar:"MERCADO LAZARETO",cantidad:2,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-025",lugar:"BIMODAL ROTONDA",cantidad:6,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-026",lugar:"BIMODAL FERRETERO PARQUEO",cantidad:3,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-027",lugar:"BIMODAL SURTIDOR",cantidad:6,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-028",lugar:"FERIA BARRIO LINDO DOBLE VIA",cantidad:4,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-029",lugar:"FERIA BARRIO LINDO 4TO ANILLO",cantidad:5,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-030",lugar:"PARQUE URBANO",cantidad:2,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-031",lugar:"3er ANILLO ALEMANA OF. DE LA GOBERNACION",cantidad:1,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-032",lugar:"BIMODAL MERCADO 20 DE MARZO",cantidad:1,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-033",lugar:"ESTACION ARGENTINA",cantidad:3,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-034",lugar:"POLICIA CAÑADA EL CARMEN",cantidad:1,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-035",lugar:"GOBERNACION",cantidad:4,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-036",lugar:"MERCADO EL TROMPILLO",cantidad:4,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-037",lugar:"CASA DEL IMPEDIDO",cantidad:1,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-038",lugar:"CEMENTERIO EL PAJONAL",cantidad:2,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-039",lugar:"IGM",cantidad:1,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-040",lugar:"ESCUELA DE AVIACION",cantidad:2,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-041",lugar:"COLEGIO MILITAR",cantidad:5,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-042",lugar:"LOS BOMBEROS",cantidad:1,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-043",lugar:"HANGARES DEL TROMPILLO",cantidad:1,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-044",lugar:"MERCADO LA MORITA",cantidad:1,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-045",lugar:"MERCADO RAMAFA",cantidad:4,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-046",lugar:"SAGUAPAC",cantidad:6,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-047",lugar:"FIDALGA 2DO ANILLO",cantidad:3,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-048",lugar:"PLAN REGULADOR",cantidad:1,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-049",lugar:"MERCADO ALTO SAN PEDRO",cantidad:3,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-050",lugar:"MERCADO SANTA ROSA",cantidad:6,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-051",lugar:"MERCADO FATIMA",cantidad:2,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-052",lugar:"MERCADO ABASTO COQUEROS",cantidad:5,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-053",lugar:"MERCADO ABASTO ROTONDA 3ER ANILLO EXTERNO",cantidad:5,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-054",lugar:"TRANSITO 3ER ANILLO",cantidad:1,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-055",lugar:"MADISA",cantidad:1,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-056",lugar:"CAMBODROMO 4TO ANILLO",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-057",lugar:"CONDOMINIO ALCANTARA",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-058",lugar:"CONDOMINIO ALMERIA",cantidad:3,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-059",lugar:"UNIVERSIDAD LOS VALLECITOS",cantidad:3,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-060",lugar:"ACRICOLOR AV. BANZER",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-061",lugar:"CONDOMINIO VERSALLES",cantidad:3,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-062",lugar:"CONDOMINIO VALLE NORTE",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-063",lugar:"CONDOMINIO LA COLINA",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-064",lugar:"CONDOMINIO CANARA",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-065",lugar:"SOCIEDAD ESPAÑOLA",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-066",lugar:"EMPRESA FINNIGCAT",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-067",lugar:"CONDOMINIO TERRAZAS",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-068",lugar:"TABLECENTRO",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-069",lugar:"COMNIDAD CIUDADANA",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-070",lugar:"CAMBODROMO 5TO ANILLO (lado coqueras)",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-071",lugar:"MERCADO LOS TUSEQUIS",cantidad:3,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-072",lugar:"POLICIA DELTA COMANDO",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-073",lugar:"OFICINA DE SAGUAPAC",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-074",lugar:"AV. ALEMANA 8VO ANILLO",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-075",lugar:"DEPÓSITO DE GENDARMERÍA Y DECOMISO U.E. SAN JUAN",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-076",lugar:"CONDOMINIO ALACIO",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-077",lugar:"CEMENTERIO NORTE",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-078",lugar:"DEPOSITO DE LA ALCALDIA BARRIO SAN JUAN",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-079",lugar:"EL COE",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-080",lugar:"CASA DE JUSTICIA SANTA ISABEL",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-081",lugar:"MERCADO GUADALUPE",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-082",lugar:"ALUMBRADO PUBLICO",cantidad:3,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-083",lugar:"UNIDAD DE CONTROL SANITARIO",cantidad:1,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-084",lugar:"PARQUE LOS MANGALES 5TO ANILLO",cantidad:2,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-085",lugar:"MERCADO MAX FERNANDEZ",cantidad:3,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-086",lugar:"MERCADO LAS AMERICAS",cantidad:1,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-087",lugar:"MERCADO PARAISO",cantidad:1,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-088",lugar:"CEMENTERIO LA COLORADA",cantidad:1,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-089",lugar:"MERCADO ABASTO 3 (LADO CUCHILLA)",cantidad:2,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-090",lugar:"CENTRO AMBIENTAL",cantidad:2,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-091",lugar:"MERCADO MUNICIPAL LOS BOSQUES",cantidad:2,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-092",lugar:"4TO ANILLO DOBLE VIA LA GUARDIA",cantidad:1,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-093",lugar:"SHOOPING DEL AUTOMOVIL",cantidad:1,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-094",lugar:"5TO ANILLO LOS BOSQUES",cantidad:5,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-095",lugar:"RAMADA NUEVA MOSCU",cantidad:5,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-096",lugar:"5TO ANILLO LA CUCHILLA",cantidad:2,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-097",lugar:"CEMENTERIO LA CUCHILLA",cantidad:5,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-098",lugar:"MERCADO 25 DE MARZO",cantidad:4,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-099",lugar:"MERCADO FLORIDA",cantidad:5,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-100",lugar:"PALACIO DE JUSTICIA",cantidad:2,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-101",lugar:"CEMENTERIO GENERAL",cantidad:3,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-102",lugar:"OMAR CHAVEZ",cantidad:5,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-103",lugar:"LA INTENDENCIA",cantidad:3,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-104",lugar:"SUPER MERCADO FIDALGA LA BLACUT",cantidad:2,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-105",lugar:"REGIMIENTO DE LA POLICIA MILITAR",cantidad:3,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-106",lugar:"OCTAVA DIVISION",cantidad:3,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-107",lugar:"COL. LOGÍSTICO CANAL COTOCA",cantidad:2,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-108",lugar:"POLITÉCNICO DE LA GABRIEL",cantidad:1,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-109",lugar:"MÓDULO DE LA GABRIEL 2DO ANILLO",cantidad:3,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-110",lugar:"Mercado Santa Cruz",cantidad:1,distrito:9,tipo:"Caja Autocompactadora",lat:-17.8509014,lng:-63.1810076,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-111",lugar:"Mercado Primavera",cantidad:1,distrito:9,tipo:"Caja Autocompactadora",lat:-17.822605,lng:-63.1633033,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-112",lugar:"Centro Comercial Ventura Mall",cantidad:1,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7533608,lng:-63.199584,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-113",lugar:"Centro Comercial Las Brisas",cantidad:1,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7486997,lng:-63.1773481,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-114",lugar:"Mercado Abasto Mayorista",cantidad:1,distrito:10,tipo:"Caja Autocompactadora",lat:-17.8481742,lng:-63.2307776,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-115",lugar:"Centro Comercial IC Norte",cantidad:1,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7725867,lng:-63.2042512,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-116",lugar:"Universidad UAGRM",cantidad:1,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7732132,lng:-63.1958052,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-117",lugar:"Mercado Belén",cantidad:1,distrito:1,tipo:"Contenedor 10 m³",lat:-17.7552643,lng:-63.1885497,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-118",lugar:"Mercado Nuevo Los Pozos",cantidad:1,distrito:5,tipo:"Contenedor 10 m³",lat:-17.725844,lng:-63.1483965,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-119",lugar:"Mercado Los Pozos Minorista",cantidad:2,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7779479,lng:-63.1828124,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-120",lugar:"Condominio Fontana",cantidad:1,distrito:5,tipo:"Contenedor 10 m³",lat:-17.6876721,lng:-63.13966,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-121",lugar:"Mercado la Ramada Calle Amboró",cantidad:1,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7947895,lng:-63.1902934,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-122",lugar:"Mercado La Ramada Calle Sutó",cantidad:1,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7945519,lng:-63.1919784,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-123",lugar:"Mercado La Ramada Calle Muchirí",cantidad:1,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7934313,lng:-63.1922552,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-124",lugar:"Mercado Los Bosques",cantidad:1,distrito:10,tipo:"Contenedor 10 m³",lat:-17.8119657,lng:-63.2159882,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-125",lugar:"Mercado Abasto Minorista",cantidad:1,distrito:4,tipo:"Contenedor 10 m³",lat:-17.797699,lng:-63.204712,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-126",lugar:"Feria de La Computadora",cantidad:1,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7880875,lng:-63.1682031,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-127",lugar:"Mercado Paraíso",cantidad:1,distrito:9,tipo:"Contenedor 10 m³",lat:-17.8551121,lng:-63.1983607,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"}
+  {id:"CONT-001",lugar:"COMERCIAL CHIRIGUANO",cantidad:3,operativas:3,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-002",lugar:"PARQUES Y JARDINES",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-003",lugar:"CABAÑAS DEL PIRAI",cantidad:2,operativas:2,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-004",lugar:"AMBROSIO VILLARROEL (cementerio)",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-005",lugar:"MERCADO SAN LUIS",cantidad:2,operativas:2,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-006",lugar:"MERCADO 4 DE NOVIEMBRE",cantidad:6,operativas:6,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-007",lugar:"GASIP",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-008",lugar:"ZOOLOGICO MUNICIPAL",cantidad:3,operativas:3,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-009",lugar:"ACRICOLOR (Banzer 3er anillo)",cantidad:2,operativas:2,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-010",lugar:"SALON VELATORIO AV. BUSCH",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-011",lugar:"QUINTA MUNICIPAL",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-012",lugar:"MERCADO 12 DE OCTUBRE",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-013",lugar:"3er ANILLO EXTERNO BANZER",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-014",lugar:"RADIAL 23 EXTERNO",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-015",lugar:"AV. BUSCH",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-016",lugar:"MUTUALISTA 3ER ANILLO EXTERNO (CALDOS)",cantidad:5,operativas:5,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-017",lugar:"MUTUALISTA ROTONDA INTERNO",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-018",lugar:"MERCADO ROTONDA EXTERNO",cantidad:6,operativas:6,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-019",lugar:"MUTUALISTA 3ER ANILLO INTERNO (BANCOS)",cantidad:5,operativas:5,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-020",lugar:"MERCADO DAVID TRAPERO",cantidad:1,operativas:1,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-021",lugar:"HOSPITAL OBRERO",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-022",lugar:"TECNOLOGICO SANTA CRUZ",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-023",lugar:"SAGUAPAC AV. PARAGUA",cantidad:1,operativas:1,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-024",lugar:"MERCADO LAZARETO",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-025",lugar:"BIMODAL ROTONDA",cantidad:6,operativas:6,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-026",lugar:"BIMODAL FERRETERO PARQUEO",cantidad:3,operativas:3,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-027",lugar:"BIMODAL SURTIDOR",cantidad:6,operativas:6,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-028",lugar:"FERIA BARRIO LINDO DOBLE VIA",cantidad:4,operativas:4,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-029",lugar:"FERIA BARRIO LINDO 4TO ANILLO",cantidad:5,operativas:5,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-030",lugar:"PARQUE URBANO",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-031",lugar:"3er ANILLO ALEMANA OF. DE LA GOBERNACION",cantidad:1,operativas:1,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-032",lugar:"BIMODAL MERCADO 20 DE MARZO",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-033",lugar:"ESTACION ARGENTINA",cantidad:3,operativas:3,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-034",lugar:"POLICIA CAÑADA EL CARMEN",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-035",lugar:"GOBERNACION",cantidad:4,operativas:4,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-036",lugar:"MERCADO EL TROMPILLO",cantidad:4,operativas:4,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-037",lugar:"CASA DEL IMPEDIDO",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-038",lugar:"CEMENTERIO EL PAJONAL",cantidad:2,operativas:2,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-039",lugar:"IGM",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-040",lugar:"ESCUELA DE AVIACION",cantidad:2,operativas:2,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-041",lugar:"COLEGIO MILITAR",cantidad:5,operativas:5,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-042",lugar:"LOS BOMBEROS",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-043",lugar:"HANGARES DEL TROMPILLO",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-044",lugar:"MERCADO LA MORITA",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-045",lugar:"MERCADO RAMAFA",cantidad:4,operativas:4,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-046",lugar:"SAGUAPAC",cantidad:6,operativas:6,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-047",lugar:"FIDALGA 2DO ANILLO",cantidad:3,operativas:3,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-048",lugar:"PLAN REGULADOR",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-049",lugar:"MERCADO ALTO SAN PEDRO",cantidad:3,operativas:3,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-050",lugar:"MERCADO SANTA ROSA",cantidad:6,operativas:6,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-051",lugar:"MERCADO FATIMA",cantidad:2,operativas:2,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-052",lugar:"MERCADO ABASTO COQUEROS",cantidad:5,operativas:5,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-053",lugar:"MERCADO ABASTO ROTONDA 3ER ANILLO EXTERNO",cantidad:5,operativas:5,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-054",lugar:"TRANSITO 3ER ANILLO",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-055",lugar:"MADISA",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-056",lugar:"CAMBODROMO 4TO ANILLO",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-057",lugar:"CONDOMINIO ALCANTARA",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-058",lugar:"CONDOMINIO ALMERIA",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-059",lugar:"UNIVERSIDAD LOS VALLECITOS",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-060",lugar:"ACRICOLOR AV. BANZER",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-061",lugar:"CONDOMINIO VERSALLES",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-062",lugar:"CONDOMINIO VALLE NORTE",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-063",lugar:"CONDOMINIO LA COLINA",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-064",lugar:"CONDOMINIO CANARA",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-065",lugar:"SOCIEDAD ESPAÑOLA",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-066",lugar:"EMPRESA FINNIGCAT",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-067",lugar:"CONDOMINIO TERRAZAS",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-068",lugar:"TABLECENTRO",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-069",lugar:"COMNIDAD CIUDADANA",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-070",lugar:"CAMBODROMO 5TO ANILLO (lado coqueras)",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-071",lugar:"MERCADO LOS TUSEQUIS",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-072",lugar:"POLICIA DELTA COMANDO",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-073",lugar:"OFICINA DE SAGUAPAC",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-074",lugar:"AV. ALEMANA 8VO ANILLO",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-075",lugar:"DEPÓSITO DE GENDARMERÍA Y DECOMISO U.E. SAN JUAN",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-076",lugar:"CONDOMINIO ALACIO",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-077",lugar:"CEMENTERIO NORTE",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-078",lugar:"DEPOSITO DE LA ALCALDIA BARRIO SAN JUAN",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-079",lugar:"EL COE",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-080",lugar:"CASA DE JUSTICIA SANTA ISABEL",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-081",lugar:"MERCADO GUADALUPE",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-082",lugar:"ALUMBRADO PUBLICO",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-083",lugar:"UNIDAD DE CONTROL SANITARIO",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-084",lugar:"PARQUE LOS MANGALES 5TO ANILLO",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-085",lugar:"MERCADO MAX FERNANDEZ",cantidad:3,operativas:3,noOperativas:0,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-086",lugar:"MERCADO LAS AMERICAS",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-087",lugar:"MERCADO PARAISO",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-088",lugar:"CEMENTERIO LA COLORADA",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-089",lugar:"MERCADO ABASTO 3 (LADO CUCHILLA)",cantidad:2,operativas:2,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-090",lugar:"CENTRO AMBIENTAL",cantidad:2,operativas:2,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-091",lugar:"MERCADO MUNICIPAL LOS BOSQUES",cantidad:2,operativas:2,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-092",lugar:"4TO ANILLO DOBLE VIA LA GUARDIA",cantidad:1,operativas:1,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-093",lugar:"SHOOPING DEL AUTOMOVIL",cantidad:1,operativas:1,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-094",lugar:"5TO ANILLO LOS BOSQUES",cantidad:5,operativas:5,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-095",lugar:"RAMADA NUEVA MOSCU",cantidad:5,operativas:5,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-096",lugar:"5TO ANILLO LA CUCHILLA",cantidad:2,operativas:2,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-097",lugar:"CEMENTERIO LA CUCHILLA",cantidad:5,operativas:5,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-098",lugar:"MERCADO 25 DE MARZO",cantidad:4,operativas:4,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-099",lugar:"MERCADO FLORIDA",cantidad:5,operativas:5,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-100",lugar:"PALACIO DE JUSTICIA",cantidad:2,operativas:2,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-101",lugar:"CEMENTERIO GENERAL",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-102",lugar:"OMAR CHAVEZ",cantidad:5,operativas:5,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-103",lugar:"LA INTENDENCIA",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-104",lugar:"SUPER MERCADO FIDALGA LA BLACUT",cantidad:2,operativas:2,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-105",lugar:"REGIMIENTO DE LA POLICIA MILITAR",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-106",lugar:"OCTAVA DIVISION",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-107",lugar:"COL. LOGÍSTICO CANAL COTOCA",cantidad:2,operativas:2,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-108",lugar:"POLITÉCNICO DE LA GABRIEL",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-109",lugar:"MÓDULO DE LA GABRIEL 2DO ANILLO",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-110",lugar:"Mercado Santa Cruz",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Caja Autocompactadora",lat:-17.8509014,lng:-63.1810076,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-111",lugar:"Mercado Primavera",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Caja Autocompactadora",lat:-17.822605,lng:-63.1633033,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-112",lugar:"Centro Comercial Ventura Mall",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7533608,lng:-63.199584,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-113",lugar:"Centro Comercial Las Brisas",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7486997,lng:-63.1773481,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-114",lugar:"Mercado Abasto Mayorista",cantidad:1,operativas:1,noOperativas:0,distrito:10,tipo:"Caja Autocompactadora",lat:-17.8481742,lng:-63.2307776,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-115",lugar:"Centro Comercial IC Norte",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7725867,lng:-63.2042512,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-116",lugar:"Universidad UAGRM",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7732132,lng:-63.1958052,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-117",lugar:"Mercado Belén",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 10 m³",lat:-17.7552643,lng:-63.1885497,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-118",lugar:"Mercado Nuevo Los Pozos",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 10 m³",lat:-17.725844,lng:-63.1483965,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-119",lugar:"Mercado Los Pozos Minorista",cantidad:2,operativas:2,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7779479,lng:-63.1828124,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-120",lugar:"Condominio Fontana",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 10 m³",lat:-17.6876721,lng:-63.13966,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-121",lugar:"Mercado la Ramada Calle Amboró",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7947895,lng:-63.1902934,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-122",lugar:"Mercado La Ramada Calle Sutó",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7945519,lng:-63.1919784,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-123",lugar:"Mercado La Ramada Calle Muchirí",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7934313,lng:-63.1922552,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-124",lugar:"Mercado Los Bosques",cantidad:1,operativas:1,noOperativas:0,distrito:10,tipo:"Contenedor 10 m³",lat:-17.8119657,lng:-63.2159882,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-125",lugar:"Mercado Abasto Minorista",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 10 m³",lat:-17.797699,lng:-63.204712,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-126",lugar:"Feria de La Computadora",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7880875,lng:-63.1682031,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
+  {id:"CONT-127",lugar:"Mercado Paraíso",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Contenedor 10 m³",lat:-17.8551121,lng:-63.1983607,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"}
 ];
 
 function getDesgloseUnidades(r) {
@@ -611,7 +578,99 @@ let records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || INITIAL_DATA;
 let currentPhotoBase64 = '';
 let selectedId = null;
 
-// Inicializar Mapa centrado en Santa Cruz de la Sierra
+function setSyncStatus(msg, isError = false) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? '#f87171' : '#34d399';
+}
+
+function guardarLocalSeguro() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  } catch (err) {
+    // Si hay enlaces de Drive en foto, ocupa muy poco espacio
+  }
+}
+
+async function syncFromCloud(showAlert = false) {
+  if (!API_URL || API_URL.includes('PON_AQUI')) return;
+  setSyncStatus('🔄 Sincronizando con Google Sheets...');
+  try {
+    const res = await fetch(API_URL, { method: 'GET', cache: 'no-store' });
+    const data = await res.json();
+    if (data && data.ok && Array.isArray(data.records)) {
+      if (data.records.length > 0) {
+        records = data.records;
+        guardarLocalSeguro();
+        render();
+        setSyncStatus(`✅ Sincronizado (${records.length} puntos) • ${new Date().toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}`);
+      } else {
+        setSyncStatus('⚠️ Hoja vacía: usa "☁️ Subir Base a Nube" para cargar los 127 puntos.');
+      }
+      if (showAlert) alert('Sincronización completada.');
+    } else {
+      throw new Error(data.error || 'Respuesta inválida');
+    }
+  } catch (err) {
+    setSyncStatus('⚠️ Sin conexión con nube (mostrando copia local)', true);
+    if (showAlert) alert('No se pudo sincronizar con Google Sheets: ' + err.message);
+  }
+}
+
+async function pushRecordToCloud(rec) {
+  if (!API_URL || API_URL.includes('PON_AQUI')) return;
+  setSyncStatus('☁️ Guardando en Google Sheets y Drive...');
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'upsert', record: rec })
+    });
+    const data = await res.json();
+    if (data && data.ok && data.record) {
+      const idx = records.findIndex(x => x.id === data.record.id);
+      if (idx !== -1) {
+        records[idx] = { ...records[idx], ...data.record };
+      }
+      guardarLocalSeguro();
+      render();
+      setSyncStatus(`✅ Guardado en nube • ${new Date().toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}`);
+    } else {
+      throw new Error(data.error || 'Error al guardar en nube');
+    }
+  } catch (err) {
+    setSyncStatus('⚠️ Guardado local; pendiente subir a nube', true);
+  }
+}
+
+async function seedCloudBase() {
+  if (!API_URL || API_URL.includes('PON_AQUI')) return;
+  if (!confirm(`¿Subir los ${records.length} puntos actuales a Google Sheets? Esto reemplazará las filas actuales de la hoja.`)) return;
+  setSyncStatus('☁️ Subiendo base completa a Google Sheets...');
+  try {
+    const cleanList = records.map(r => ({
+      ...r,
+      foto: (r.foto && String(r.foto).startsWith('http')) ? r.foto : ''
+    }));
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'seed', records: cleanList })
+    });
+    const data = await res.json();
+    if (data && data.ok) {
+      setSyncStatus(`✅ Base subida (${data.count} puntos) en Google Sheets`);
+      alert(`✅ Se subieron ${data.count} puntos a Google Sheets.`);
+    } else {
+      throw new Error(data.error || 'Error al subir base');
+    }
+  } catch (err) {
+    setSyncStatus('⚠️ Error al subir base a nube', true);
+    alert('Error al subir base: ' + err.message);
+  }
+}
+
 const map = L.map('map').setView([-17.7833, -63.1821], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap'
@@ -709,7 +768,7 @@ function seleccionarPunto(id) {
     mediaEl.innerHTML = `<img src="${escapeAttr(fotoSrc)}" class="selected-card-photo" alt="Foto ${escapeAttr(r.id)}" onclick="verFotoSeleccionada()" title="Toca para ampliar" />`;
     btnZoom.style.display = 'inline-flex';
   } else {
-    mediaEl.innerHTML = `<div class="selected-card-empty">Este punto no tiene foto guardada en este dispositivo. Toca "Actualizar / Foto" para tomar o cargar una.</div>`;
+    mediaEl.innerHTML = `<div class="selected-card-empty">Este punto aún no tiene foto registrada. Toca "Actualizar / Foto" para tomar o cargar una.</div>`;
     btnZoom.style.display = 'none';
   }
   actionsEl.style.display = 'flex';
@@ -771,7 +830,7 @@ function render() {
 
   const filtered = records.filter(r => {
     const u = getDesgloseUnidades(r);
-    const matchQ = r.lugar.toLowerCase().includes(q) || r.id.toLowerCase().includes(q);
+    const matchQ = String(r.lugar || '').toLowerCase().includes(q) || String(r.id || '').toLowerCase().includes(q);
     const matchD = !dist || String(r.distrito) === dist;
     const matchT = !tipo || r.tipo === tipo;
     const matchE = !est || r.estado === est;
@@ -781,7 +840,6 @@ function render() {
     return matchQ && matchD && matchT && matchE && matchN && matchG;
   });
 
-  // Actualizar KPIs globales de puntos y unidades
   let totalUnidades = 0;
   let totalOperativas = 0;
   let totalNoOperativas = 0;
@@ -799,7 +857,7 @@ function render() {
   const conFoto = records.filter(r => normalizarFotoSrc(r.foto)).length;
 
   document.getElementById('kpi-puntos').textContent = records.length;
-  document.getElementById('kpi-gps').textContent = `${conGps} con GPS (${Math.round(conGps/records.length*100)}%)`;
+  document.getElementById('kpi-gps').textContent = `${conGps} con GPS (${Math.round(conGps/(records.length||1)*100)}%)`;
   document.getElementById('kpi-unidades').textContent = totalUnidades;
   document.getElementById('kpi-desglose-unid').textContent = `${totalOperativas} op. / ${totalNoOperativas} no op.`;
   document.getElementById('kpi-op').textContent = totalOperativas;
@@ -807,7 +865,6 @@ function render() {
   document.getElementById('kpi-nov-puntos').textContent = `${puntosConNoOp} puntos con novedad`;
   document.getElementById('kpi-fotos').textContent = conFoto;
 
-  // Render Tabla y Marcadores
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
   markersLayer.clearLayers();
@@ -817,7 +874,7 @@ function render() {
 
   filtered.forEach(r => {
     const u = getDesgloseUnidades(r);
-    const hasGps = r.lat !== null && r.lng !== null && r.lat !== '' && r.lng !== '';
+    const hasGps = r.lat !== null && r.lng !== null && r.lat !== '' && r.lng !== '' && !isNaN(Number(r.lat)) && !isNaN(Number(r.lng));
     const mapsLink = hasGps ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : null;
     const fotoSrc = normalizarFotoSrc(r.foto);
     const safeLugar = escapeAttr(r.lugar);
@@ -826,7 +883,7 @@ function render() {
     if (hasGps) {
       const marker = L.circleMarker([Number(r.lat), Number(r.lng)], {
         radius: isMobile ? 12 : 8,
-        fillColor: getMarkerColor(r.tipo),
+        fillColor: getMarkerColor(String(r.tipo || '')),
         color: u.noOp > 0 ? '#ef4444' : '#fff',
         weight: u.noOp > 0 ? 3 : 2,
         fillOpacity: 0.95
@@ -841,7 +898,7 @@ function render() {
              <img src="${escapeAttr(fotoSrc)}" class="popup-photo" alt="Foto ${safeId}" onclick="verFotoPorId('${safeId}')" />
              <span class="popup-photo-hint">Toca la foto para ampliar</span>
            </div>`
-        : `<small style="color:#64748b;">Sin foto en este dispositivo</small>`;
+        : `<small style="color:#64748b;">Sin foto registrada</small>`;
 
       const popupHtml = `
         <div class="popup-box">
@@ -876,7 +933,7 @@ function render() {
         <small style="color:var(--muted)">${escapeAttr(r.ultimaActualizacion || '')}${r.supervisor ? ' • Sup: '+escapeAttr(r.supervisor) : ''}</small>
       </td>
       <td>D-${escapeAttr(r.distrito)}</td>
-      <td>${escapeAttr(r.tipo.replace('Contenedor ', ''))}</td>
+      <td>${escapeAttr(String(r.tipo || '').replace('Contenedor ', ''))}</td>
       <td>
         <strong>${u.total}</strong>
         <span class="unit-sub unit-ok">${u.op} op.</span>
@@ -974,7 +1031,6 @@ function capturarGPS() {
   );
 }
 
-// Comprime la imagen a máx 600px para no saturar la memoria y permitir sincronización rápida
 function procesarFoto(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -983,13 +1039,13 @@ function procesarFoto(event) {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX_W = 600;
+      const MAX_W = 800;
       const scale = Math.min(1, MAX_W / img.width);
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.72);
+      currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.78);
       document.getElementById('m-preview').src = currentPhotoBase64;
       document.getElementById('preview-box').style.display = 'block';
     };
@@ -998,7 +1054,7 @@ function procesarFoto(event) {
   reader.readAsDataURL(file);
 }
 
-function saveRecord() {
+async function saveRecord() {
   const id = document.getElementById('m-id').value;
   const lugar = document.getElementById('m-lugar').value.trim();
   if (!lugar) return alert('Ingresa el nombre del lugar.');
@@ -1054,14 +1110,11 @@ function saveRecord() {
     records.unshift(payload);
   }
 
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-  } catch (err) {
-    alert('⚠️ Espacio de almacenamiento lleno en el navegador. Exporta un Respaldo JSON y elimina fotos antiguas.');
-  }
+  guardarLocalSeguro();
   selectedId = payload.id;
   closeModal();
   render();
+  await pushRecordToCloud(payload);
 }
 
 function exportCSV() {
@@ -1069,9 +1122,9 @@ function exportCSV() {
   const rows = records.map(r => {
     const u = getDesgloseUnidades(r);
     return [
-      r.id, `"${r.lugar.replace(/"/g,'""')}"`, r.distrito, `"${r.tipo}"`, u.total, u.op, u.noOp,
+      r.id, `"${String(r.lugar || '').replace(/"/g,'""')}"`, r.distrito, `"${r.tipo}"`, u.total, u.op, u.noOp,
       r.lat || '', r.lng || '', (r.lat && r.lng) ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : '',
-      r.estado, `"${r.supervisor || ''}"`, `"${(r.observaciones || '').replace(/"/g,'""')}"`, `"${r.ultimaActualizacion || ''}"`
+      r.estado, `"${r.supervisor || ''}"`, `"${String(r.observaciones || '').replace(/"/g,'""')}"`, `"${r.ultimaActualizacion || ''}"`
     ];
   });
   const csv = '\uFEFF' + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
@@ -1099,7 +1152,7 @@ function importBackup(event) {
       const data = JSON.parse(e.target.result);
       if (Array.isArray(data)) {
         records = data;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        guardarLocalSeguro();
         render();
         alert(`✅ Se cargaron ${records.length} puntos correctamente.`);
       }
@@ -1109,6 +1162,7 @@ function importBackup(event) {
 }
 
 render();
+syncFromCloud(false);
 </script>
 </body>
 </html>
