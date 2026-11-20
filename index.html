@@ -374,6 +374,8 @@
 
     let records = [];
     let map, markersLayer;
+    let pendingUpsert = null;
+    let pendingUpsertUntil = 0;
 
     function setStatus(msg, isError = false) {
       const el = document.getElementById('syncStatus');
@@ -539,7 +541,9 @@
     }
 
     function saveLocal() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      } catch (e) {}
     }
 
     function loadLocal() {
@@ -712,7 +716,24 @@
         }
         if (!data.ok) throw new Error(data.error || 'Respuesta inválida');
         if (Array.isArray(data.records) && data.records.length > 0) {
-          records = data.records.map(normalizeRecord);
+          let merged = data.records.map(normalizeRecord);
+
+          // Si hubo un guardado reciente en este dispositivo, protegerlo si el servidor aún no refleja la foto o cambio
+          if (pendingUpsert && Date.now() < pendingUpsertUntil) {
+            const idx = merged.findIndex(item => item.id === pendingUpsert.id);
+            const localRec = records.find(item => item.id === pendingUpsert.id) || pendingUpsert;
+            const serverRec = idx >= 0 ? merged[idx] : null;
+            const serverMissingPhoto = localRec.foto && (!serverRec || !serverRec.foto);
+
+            if (!serverRec || serverMissingPhoto) {
+              if (idx >= 0) merged[idx] = localRec;
+              else merged.push(localRec);
+            } else {
+              pendingUpsert = null;
+            }
+          }
+
+          records = merged;
           saveLocal();
           render();
           setStatus(`Sincronizado: ${records.length} registros desde Google Sheets (${new Date().toLocaleTimeString()})`);
@@ -880,14 +901,18 @@
       if (idx >= 0) records[idx] = updated;
       else records.push(updated);
 
+      pendingUpsert = updated;
+      pendingUpsertUntil = Date.now() + 12000;
+
       saveLocal();
       render();
+      renderDetail(updated);
       closeModal();
 
-      setStatus(`Guardando ${updated.id} en Google Sheets...`);
+      setStatus(`Guardado local de ${updated.id}. Subiendo a Google Sheets...`);
       try {
         await postToSheets({ action: 'upsert', record: updated }, true);
-        setTimeout(syncFromSheets, 1500);
+        setTimeout(syncFromSheets, 2500);
       } catch (err) {
         setStatus(`Guardado local; error en nube: ${err.message}`, true);
       }
