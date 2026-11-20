@@ -228,7 +228,7 @@
         <div class="sub">Listas para operar</div>
       </div>
       <div class="kpi">
-        <div class="label">Unidades No Operables</div>
+        <div class="label">Unidades No Operativas</div>
         <div id="kpiNoOperativas" class="val" style="color:var(--danger)">0</div>
         <div class="sub" id="kpiNovedad">0 puntos con novedad</div>
       </div>
@@ -246,8 +246,8 @@
       <select id="filterEstado"><option value="">Todos los Estados</option></select>
       <select id="filterUnidades">
         <option value="">Unidades: Todas</option>
-        <option value="con_no_op">Con no operables</option>
-        <option value="todo_op">100 puntos operativas</option>
+        <option value="con_no_op">Con no operativos</option>
+        <option value="todo_op">Todos operativos</option>
       </select>
       <select id="filterGps">
         <option value="">GPS: Todos</option>
@@ -316,11 +316,11 @@
             <input id="fEstado" placeholder="Ej: Operativo, Mantenimiento" />
           </div>
           <div>
-            <label>Operativas</label>
+            <label>Operativos</label>
             <input id="fOperativas" type="number" min="0" value="0" />
           </div>
           <div>
-            <label>No Operativas</label>
+            <label>No Operativos</label>
             <input id="fNoOperativas" type="number" min="0" value="0" />
           </div>
           <div>
@@ -531,7 +531,7 @@
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
         <div class="sync-status">Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo || '-'} | Estado: ${rec.estado || '-'}</div>
         <div style="margin-top:8px; font-size:0.86rem;">
-          <strong>Unidades:</strong> ${rec.operativas} operativas / ${rec.noOperativas} no operables (Total: ${rec.cantidad})<br/>
+          <strong>Unidades:</strong> ${rec.operativas} operativos / ${rec.noOperativas} no operativos (Total: ${rec.cantidad})<br/>
           <strong>Supervisor:</strong> ${rec.supervisor || '-'}<br/>
           <strong>Observaciones:</strong> ${rec.observaciones || '-'}
         </div>
