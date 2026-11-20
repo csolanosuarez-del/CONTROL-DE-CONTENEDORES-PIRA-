@@ -940,35 +940,68 @@
         if (norm.id) mapById.set(norm.id, norm);
       });
 
+      const now = Date.now();
+      let pendingChanged = false;
+
       serverList.forEach(item => {
         const norm = normalizeRecord(item);
         if (!norm.id) return;
         const prev = mapById.get(norm.id);
+        const pendingEntry = pendingMap[norm.id];
+        const pendingRec = (pendingEntry && pendingEntry.expiresAt > now)
+          ? normalizeRecord(pendingEntry.record)
+          : null;
 
-        const keepLocalPhoto = prev && prev.foto && !norm.foto;
+        const refLocal = pendingRec || prev;
+
+        const keepLocalPhoto = refLocal && refLocal.foto && !norm.foto;
         const serverHasGps = norm.lat !== null && norm.lng !== null;
-        const prevHasGps = prev && prev.lat !== null && prev.lng !== null;
+        const refHasGps = refLocal && refLocal.lat !== null && refLocal.lng !== null;
 
-        const preservedNoOp = (norm.noOperativas === 0 && prev && prev.noOperativas > 0) ? prev.noOperativas : norm.noOperativas;
-        const preservedStandBy = (norm.standBy === 0 && prev && prev.standBy > 0) ? prev.standBy : norm.standBy;
-        const preservedRep = (norm.reparacion === 0 && prev && prev.reparacion > 0) ? prev.reparacion : norm.reparacion;
+        // Si el servidor devuelve 0 en un contador pero el registro local/pendiente tiene un valor > 0, conservamos el local
+        const finalOp = (norm.operativas === 0 && refLocal && refLocal.operativas > 0)
+          ? refLocal.operativas
+          : norm.operativas;
+        const finalNoOp = (norm.noOperativas === 0 && refLocal && refLocal.noOperativas > 0)
+          ? refLocal.noOperativas
+          : norm.noOperativas;
+        const finalStandBy = (norm.standBy === 0 && refLocal && refLocal.standBy > 0)
+          ? refLocal.standBy
+          : norm.standBy;
+        const finalRep = (norm.reparacion === 0 && refLocal && refLocal.reparacion > 0)
+          ? refLocal.reparacion
+          : norm.reparacion;
 
         const merged = {
           ...norm,
-          noOperativas: preservedNoOp,
-          standBy: preservedStandBy,
-          reparacion: preservedRep,
-          lat: serverHasGps ? norm.lat : (prevHasGps ? prev.lat : null),
-          lng: serverHasGps ? norm.lng : (prevHasGps ? prev.lng : null),
-          foto: keepLocalPhoto ? prev.foto : norm.foto
+          operativas: finalOp,
+          noOperativas: finalNoOp,
+          standBy: finalStandBy,
+          reparacion: finalRep,
+          lat: serverHasGps ? norm.lat : (refHasGps ? refLocal.lat : null),
+          lng: serverHasGps ? norm.lng : (refHasGps ? refLocal.lng : null),
+          foto: keepLocalPhoto ? refLocal.foto : norm.foto
         };
         merged.cantidad = calculateTotalUnits(merged);
         merged.estado = calculateStatus(merged);
         mapById.set(norm.id, merged);
+
+        if (pendingRec) {
+          const syncedOk =
+            norm.operativas === pendingRec.operativas &&
+            norm.noOperativas === pendingRec.noOperativas &&
+            norm.standBy === pendingRec.standBy &&
+            norm.reparacion === pendingRec.reparacion &&
+            (!pendingRec.foto || Boolean(norm.foto)) &&
+            (pendingRec.lat === null || norm.lat !== null);
+
+          if (syncedOk) {
+            delete pendingMap[norm.id];
+            pendingChanged = true;
+          }
+        }
       });
 
-      const now = Date.now();
-      let pendingChanged = false;
       Object.keys(pendingMap).forEach(id => {
         const entry = pendingMap[id];
         if (!entry || entry.expiresAt <= now) {
@@ -976,36 +1009,11 @@
           pendingChanged = true;
           return;
         }
-        const localRec = normalizeRecord(entry.record);
-        const serverRec = serverList.find(s => normalizeRecord(s).id === id);
-        if (!serverRec) {
-          mapById.set(id, localRec);
-        } else {
-          const serverNorm = normalizeRecord(serverRec);
-          const serverMissingPhoto = localRec.foto && !serverNorm.foto;
-          const serverMissingGps = (localRec.lat !== null && localRec.lng !== null) && (serverNorm.lat === null || serverNorm.lng === null);
-          const serverWipedCounts =
-            (localRec.noOperativas > 0 && serverNorm.noOperativas === 0) ||
-            (localRec.standBy > 0 && serverNorm.standBy === 0) ||
-            (localRec.reparacion > 0 && serverNorm.reparacion === 0);
-
-          if (serverMissingPhoto || serverMissingGps || serverWipedCounts) {
-            const keepRec = {
-              ...serverNorm,
-              noOperativas: serverNorm.noOperativas > 0 ? serverNorm.noOperativas : localRec.noOperativas,
-              standBy: serverNorm.standBy > 0 ? serverNorm.standBy : localRec.standBy,
-              reparacion: serverNorm.reparacion > 0 ? serverNorm.reparacion : localRec.reparacion,
-              lat: (serverNorm.lat !== null && serverNorm.lng !== null) ? serverNorm.lat : localRec.lat,
-              lng: (serverNorm.lat !== null && serverNorm.lng !== null) ? serverNorm.lng : localRec.lng,
-              foto: serverNorm.foto || localRec.foto
-            };
-            keepRec.cantidad = calculateTotalUnits(keepRec);
-            keepRec.estado = calculateStatus(keepRec);
-            mapById.set(id, keepRec);
-          } else {
-            delete pendingMap[id];
-            pendingChanged = true;
-          }
+        if (!mapById.has(id)) {
+          const pRec = normalizeRecord(entry.record);
+          pRec.cantidad = calculateTotalUnits(pRec);
+          pRec.estado = calculateStatus(pRec);
+          mapById.set(id, pRec);
         }
       });
 
@@ -1114,7 +1122,7 @@
           await new Promise(r => setTimeout(r, 900));
         }
         setStatus('Envío completado. Verificando datos en Google Sheets...');
-        setTimeout(syncFromSheets, 2000);
+        setTimeout(syncFromSheets, 2500);
       } catch (err) {
         setStatus(`Error al subir base: ${err.message}`, true);
       }
@@ -1169,4 +1177,124 @@
         document.getElementById('fFoto').value = compressed.dataUrl;
         const origKb = Math.round(file.size / 1024);
         setPhotoMsg(`Optimizada: ${origKb} KB → ~${compressed.approxKb} KB (${compressed.width}x${compressed.height} px).`);
-      } catch (err
+      } catch (err) {
+        setPhotoMsg(err.message, true);
+      }
+    });
+
+    document.getElementById('pointForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const tipoFinal = normalizeType(document.getElementById('fTipo').value);
+
+      const op = Number(document.getElementById('fOperativas').value) || 0;
+      const noOp = Number(document.getElementById('fNoOperativas').value) || 0;
+      const standBy = Number(document.getElementById('fStandBy').value) || 0;
+      const reparacion = Number(document.getElementById('fReparacion').value) || 0;
+      const latRaw = document.getElementById('fLat').value.trim();
+      const lngRaw = document.getElementById('fLng').value.trim();
+
+      const updated = normalizeRecord({
+        id: document.getElementById('fId').value.trim(),
+        lugar: document.getElementById('fLugar').value.trim(),
+        distrito: document.getElementById('fDistrito').value.trim(),
+        cantidad: op + noOp + standBy + reparacion,
+        operativas: op,
+        noOperativas: noOp,
+        standBy,
+        reparacion,
+        tipo: tipoFinal,
+        lat: latRaw === '' ? null : Number(latRaw),
+        lng: lngRaw === '' ? null : Number(lngRaw),
+        supervisor: document.getElementById('fSupervisor').value.trim(),
+        observaciones: document.getElementById('fObservaciones').value.trim(),
+        foto: document.getElementById('fFoto').value.trim(),
+        ultimaActualizacion: new Date().toLocaleString()
+      });
+
+      const idx = records.findIndex(r => r.id === updated.id);
+      if (idx >= 0) records[idx] = updated;
+      else records.push(updated);
+
+      pendingMap[updated.id] = {
+        record: updated,
+        expiresAt: Date.now() + 180000
+      };
+      savePending();
+      saveLocal();
+      render();
+      renderDetail(updated);
+      closeModal();
+
+      setStatus(`Guardado local de ${updated.id} (${updated.estado}). Enviando a Google Sheets...`);
+      try {
+        await postToSheets({ action: 'upsert', record: updated }, true);
+        setTimeout(syncFromSheets, 5500);
+      } catch (err) {
+        setStatus(`Guardado local; error en nube: ${err.message}`, true);
+      }
+    });
+
+    document.getElementById('btnNew').addEventListener('click', () => openEditModal(''));
+    document.getElementById('btnCancelModal').addEventListener('click', closeModal);
+    document.getElementById('btnSync').addEventListener('click', syncFromSheets);
+    document.getElementById('btnSeed').addEventListener('click', seedToSheets);
+
+    document.getElementById('btnCsv').addEventListener('click', () => {
+      const headers = ['ID','LUGAR','DISTRITO','OPERABLES (EN ZONA)','INOPERABLES (EN ZONA)','STAND BY (EN BASE)','REPARACION (EN BASE/TALLER)','TOTAL','TIPO','LAT','LNG','ESTADO','SUPERVISOR','OBSERVACIONES','FOTO','ULTIMA ACTUALIZACIÓN'];
+      const rows = records.map(r => [
+        r.id, r.lugar, r.distrito, r.operativas, r.noOperativas, r.standBy, r.reparacion,
+        calculateTotalUnits(r), r.tipo, r.lat ?? '', r.lng ?? '', calculateStatus(r),
+        r.supervisor, r.observaciones, r.foto, r.ultimaActualizacion
+      ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
+      const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'contenedores_pirai.csv';
+      a.click();
+    });
+
+    document.getElementById('btnExportJson').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'respaldo_contenedores_pirai.json';
+      a.click();
+    });
+
+    document.getElementById('btnImportJson').addEventListener('click', () => {
+      document.getElementById('fileJsonInput').click();
+    });
+
+    document.getElementById('fileJsonInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const arr = JSON.parse(reader.result);
+          if (!Array.isArray(arr)) throw new Error('El JSON debe ser una lista');
+          records = arr.map(normalizeRecord).filter(r => r.id || r.lugar);
+          saveLocal();
+          render();
+          setStatus(`Cargados ${records.length} registros desde archivo JSON.`);
+        } catch (err) {
+          setStatus(`Error al leer JSON: ${err.message}`, true);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    ['searchInput', 'filterDistrito', 'filterTipo', 'filterUnidades', 'filterGps'].forEach(id => {
+      document.getElementById(id).addEventListener('input', render);
+      document.getElementById(id).addEventListener('change', render);
+    });
+
+    initMap();
+    pendingMap = loadPending();
+    records = mergeServerAndLocal([], loadLocal());
+    saveLocal();
+    render();
+    syncFromSheets();
+  </script>
+</body>
+</html>
