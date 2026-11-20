@@ -682,10 +682,10 @@
     }
 
     function normalizeRecord(raw) {
-      const op = parseNum(
+      let op = parseNum(
         raw.operativas ?? raw.OPERATIVOS ?? raw.operables ?? raw.OPERABLES ?? raw['OPERABLES (EN ZONA)']
       );
-      const noOp = parseNum(
+      let noOp = parseNum(
         raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS'] ?? raw.inoperables ?? raw.INOPERABLES ?? raw['INOPERABLES (EN ZONA)']
       );
       const standBy = parseNum(
@@ -694,6 +694,18 @@
       const reparacion = parseNum(
         raw.reparacion ?? raw.enReparacion ?? raw.en_reparacion ?? raw['EN REPARACION'] ?? raw['REPARACION'] ?? raw['REPARACIÓN'] ?? raw['REPARACION (EN BASE/TALLER)']
       );
+      const rawCant = parseNum(raw.cantidad ?? raw.CANTIDAD);
+
+      // Si la hoja trae cantidad > 0 pero operativas y noOperativas vienen en 0, usamos cantidad
+      if (op === 0 && noOp === 0 && rawCant > 0) {
+        const estRaw = String(raw.estado ?? raw.ESTADO ?? '').toLowerCase();
+        if (estRaw.includes('no op') || estRaw.includes('inoper')) {
+          noOp = rawCant;
+        } else {
+          op = rawCant;
+        }
+      }
+
       const cant = op + noOp + standBy + reparacion;
 
       const latRaw = raw.lat ?? raw.LAT;
