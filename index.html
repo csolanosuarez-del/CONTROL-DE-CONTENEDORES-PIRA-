@@ -248,6 +248,17 @@
     .hint-inline { font-size: 0.72rem; color: var(--primary); margin-top: 4px; }
     .gps-msg { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
     .photo-msg { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
+    pre.debug-pre {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.76rem;
+      overflow-x: auto;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
@@ -258,6 +269,7 @@
     </div>
     <div class="toolbar">
       <button id="btnSync" type="button">🔄 Sincronizar</button>
+      <button id="btnDebug" type="button">🔍 Ver Crudo</button>
       <button id="btnSeed" type="button">☁️ Subir Base a Nube</button>
       <button id="btnNew" class="primary" type="button">+ Nuevo Punto</button>
       <button id="btnCsv" class="info" type="button">📊 Exportar Excel (CSV)</button>
@@ -293,7 +305,7 @@
       <div class="kpi">
         <div class="label">Total Unidades</div>
         <div id="kpiUnidades" class="val">0</div>
-        <div id="kpiOpNoOp" class="sub">0 op. / 0 no op.</div>
+        <div id="kpiOpNoOp" class="sub">0 op. / 0 inop.</div>
       </div>
       <div class="kpi">
         <div class="label">Operables (en zona)</div>
@@ -380,6 +392,7 @@
     </section>
   </div>
 
+  <!-- Modal Edición / Creación -->
   <div id="modalBackdrop" class="modal-backdrop">
     <div class="modal">
       <h3 id="modalTitle" style="margin-top:0">Punto de Contenedores</h3>
@@ -458,11 +471,24 @@
     </div>
   </div>
 
+  <!-- Modal Diagnóstico Crudo -->
+  <div id="debugBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <h3 style="margin-top:0">Diagnóstico de Datos (Hoja / Respaldo)</h3>
+      <div class="sync-status" style="margin-bottom:8px">Muestra el primer registro recibido de Google Sheets y el respaldo local de cantidades.</div>
+      <pre id="debugOutput" class="debug-pre">Cargando...</pre>
+      <div class="modal-actions">
+        <button id="btnCloseDebug" class="primary" type="button">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbydlRNoUEwB9ncCWfZPtS1Co2Q3jWaX0KKdkOJ9KsJFtxCue5H4Urbg1aGFxDbDIrOZ/exec';
     const STORAGE_KEY = 'pirai_contenedores_v1';
     const PENDING_KEY = 'pirai_contenedores_pending_v1';
+    const COUNTS_BACKUP_KEY = 'pirai_contenedores_last_counts_v1';
 
     const ALLOWED_TYPES = [
       'contenedor 1.5 m3',
@@ -475,6 +501,8 @@
     let records = [];
     let map, markersLayer;
     let pendingMap = {};
+    let countsBackup = {};
+    let lastRawSample = null;
 
     function setStatus(msg, isError = false) {
       const el = document.getElementById('syncStatus');
@@ -498,6 +526,41 @@
       if (val === '' || val === null || val === undefined) return 0;
       const n = Number(String(val).replace(',', '.').trim());
       return Number.isNaN(n) ? 0 : n;
+    }
+
+    function loadCountsBackup() {
+      try {
+        const raw = localStorage.getItem(COUNTS_BACKUP_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveCountsBackup() {
+      try {
+        localStorage.setItem(COUNTS_BACKUP_KEY, JSON.stringify(countsBackup));
+      } catch (e) {}
+    }
+
+    function recordCountsInBackup(rec) {
+      if (!rec || !rec.id) return;
+      const op = parseNum(rec.operativas);
+      const noOp = parseNum(rec.noOperativas);
+      const sb = parseNum(rec.standBy);
+      const rep = parseNum(rec.reparacion);
+      if (op > 0 || noOp > 0 || sb > 0 || rep > 0) {
+        countsBackup[rec.id] = {
+          operativas: op,
+          noOperativas: noOp,
+          standBy: sb,
+          reparacion: rep,
+          updatedAt: Date.now()
+        };
+        saveCountsBackup();
+      }
     }
 
     function calculateTotalUnits(rec) {
@@ -619,10 +682,18 @@
     }
 
     function normalizeRecord(raw) {
-      const op = parseNum(raw.operativas ?? raw.OPERATIVOS);
-      const noOp = parseNum(raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS']);
-      const standBy = parseNum(raw.standBy ?? raw.stand_by ?? raw.relevo ?? raw['STAND BY'] ?? raw['STAND BY / RELEVO']);
-      const reparacion = parseNum(raw.reparacion ?? raw.enReparacion ?? raw.en_reparacion ?? raw['EN REPARACION'] ?? raw['REPARACION']);
+      const op = parseNum(
+        raw.operativas ?? raw.OPERATIVOS ?? raw.operables ?? raw.OPERABLES ?? raw['OPERABLES (EN ZONA)']
+      );
+      const noOp = parseNum(
+        raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS'] ?? raw.inoperables ?? raw.INOPERABLES ?? raw['INOPERABLES (EN ZONA)']
+      );
+      const standBy = parseNum(
+        raw.standBy ?? raw.stand_by ?? raw.relevo ?? raw['STAND BY'] ?? raw['STAND BY / RELEVO'] ?? raw['STAND BY (EN BASE)']
+      );
+      const reparacion = parseNum(
+        raw.reparacion ?? raw.enReparacion ?? raw.en_reparacion ?? raw['EN REPARACION'] ?? raw['REPARACION'] ?? raw['REPARACIÓN'] ?? raw['REPARACION (EN BASE/TALLER)']
+      );
       const cant = op + noOp + standBy + reparacion;
 
       const latRaw = raw.lat ?? raw.LAT;
@@ -951,14 +1022,14 @@
         const pendingRec = (pendingEntry && pendingEntry.expiresAt > now)
           ? normalizeRecord(pendingEntry.record)
           : null;
+        const backupCounts = countsBackup[norm.id] || null;
 
-        const refLocal = pendingRec || prev;
+        const refLocal = pendingRec || prev || (backupCounts ? normalizeRecord({ id: norm.id, ...backupCounts }) : null);
 
         const keepLocalPhoto = refLocal && refLocal.foto && !norm.foto;
         const serverHasGps = norm.lat !== null && norm.lng !== null;
         const refHasGps = refLocal && refLocal.lat !== null && refLocal.lng !== null;
 
-        // Si el servidor devuelve 0 en un contador pero el registro local/pendiente tiene un valor > 0, conservamos el local
         const finalOp = (norm.operativas === 0 && refLocal && refLocal.operativas > 0)
           ? refLocal.operativas
           : norm.operativas;
@@ -984,6 +1055,7 @@
         };
         merged.cantidad = calculateTotalUnits(merged);
         merged.estado = calculateStatus(merged);
+        recordCountsInBackup(merged);
         mapById.set(norm.id, merged);
 
         if (pendingRec) {
@@ -1036,9 +1108,10 @@
         }
         if (!data.ok) throw new Error(data.error || 'Respuesta inválida');
 
-        const serverRecords = Array.isArray(data.records)
-          ? data.records.map(normalizeRecord).filter(r => r.id || r.lugar)
-          : [];
+        const rawList = Array.isArray(data.records) ? data.records : [];
+        lastRawSample = rawList.length > 0 ? rawList[0] : { note: 'Hoja vacía' };
+
+        const serverRecords = rawList.map(normalizeRecord).filter(r => r.id || r.lugar);
 
         if (serverRecords.length > 0) {
           records = mergeServerAndLocal(serverRecords, records);
@@ -1166,6 +1239,32 @@
       document.getElementById('modalBackdrop').classList.remove('open');
     }
 
+    function openDebugModal() {
+      const sampleWithoutPhoto = lastRawSample
+        ? Object.fromEntries(
+            Object.entries(lastRawSample).map(([k, v]) => [
+              k,
+              typeof v === 'string' && v.startsWith('data:image') ? `[base64 ${v.length} chars]` : v
+            ])
+          )
+        : null;
+
+      document.getElementById('debugOutput').textContent = JSON.stringify(
+        {
+          primerRegistroHoja: sampleWithoutPhoto,
+          respaldoCantidadesLocal: countsBackup
+        },
+        null,
+        2
+      );
+      document.getElementById('debugBackdrop').classList.add('open');
+    }
+
+    document.getElementById('btnDebug').addEventListener('click', openDebugModal);
+    document.getElementById('btnCloseDebug').addEventListener('click', () => {
+      document.getElementById('debugBackdrop').classList.remove('open');
+    });
+
     document.getElementById('btnGetGps').addEventListener('click', captureCurrentGps);
 
     document.getElementById('fFotoFile').addEventListener('change', async (e) => {
@@ -1211,13 +1310,15 @@
         ultimaActualizacion: new Date().toLocaleString()
       });
 
+      recordCountsInBackup(updated);
+
       const idx = records.findIndex(r => r.id === updated.id);
       if (idx >= 0) records[idx] = updated;
       else records.push(updated);
 
       pendingMap[updated.id] = {
         record: updated,
-        expiresAt: Date.now() + 180000
+        expiresAt: Date.now() + 300000
       };
       savePending();
       saveLocal();
@@ -1228,7 +1329,7 @@
       setStatus(`Guardado local de ${updated.id} (${updated.estado}). Enviando a Google Sheets...`);
       try {
         await postToSheets({ action: 'upsert', record: updated }, true);
-        setTimeout(syncFromSheets, 5500);
+        setTimeout(syncFromSheets, 6000);
       } catch (err) {
         setStatus(`Guardado local; error en nube: ${err.message}`, true);
       }
@@ -1274,6 +1375,7 @@
           const arr = JSON.parse(reader.result);
           if (!Array.isArray(arr)) throw new Error('El JSON debe ser una lista');
           records = arr.map(normalizeRecord).filter(r => r.id || r.lugar);
+          records.forEach(recordCountsInBackup);
           saveLocal();
           render();
           setStatus(`Cargados ${records.length} registros desde archivo JSON.`);
@@ -1290,6 +1392,7 @@
     });
 
     initMap();
+    countsBackup = loadCountsBackup();
     pendingMap = loadPending();
     records = mergeServerAndLocal([], loadLocal());
     saveLocal();
