@@ -704,12 +704,14 @@
         return;
       }
       const imgHtml = rec.foto ? `<img src="${rec.foto}" alt="${rec.lugar}" onerror="this.style.display='none'" />` : '';
+      const gpsText = (rec.lat !== null && rec.lng !== null) ? `${rec.lat}, ${rec.lng}` : 'Sin GPS';
       box.innerHTML = `
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
         <div class="sync-status">Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${rec.estado || '-'}</div>
         <div style="margin-top:8px; font-size:0.86rem; line-height:1.5;">
           <strong>Unidades:</strong> ${rec.operativas} operativos / ${rec.noOperativas} no operativos (Total: ${rec.cantidad})<br/>
           <strong>Base / Taller:</strong> ${rec.standBy} stand by (relevo) · ${rec.reparacion} en reparación<br/>
+          <strong>GPS:</strong> ${gpsText}<br/>
           <strong>Supervisor:</strong> ${rec.supervisor || '-'}<br/>
           <strong>Observaciones:</strong> ${rec.observaciones || '-'}
         </div>
@@ -881,9 +883,17 @@
         const norm = normalizeRecord(item);
         if (!norm.id) return;
         const prev = mapById.get(norm.id);
+
         const keepLocalPhoto = prev && prev.foto && !norm.foto;
+        const serverHasGps = norm.lat !== null && norm.lng !== null;
+        const prevHasGps = prev && prev.lat !== null && prev.lng !== null;
+
         mapById.set(norm.id, {
           ...norm,
+          lat: serverHasGps ? norm.lat : (prevHasGps ? prev.lat : null),
+          lng: serverHasGps ? norm.lng : (prevHasGps ? prev.lng : null),
+          standBy: (norm.standBy > 0 || !prev) ? norm.standBy : prev.standBy,
+          reparacion: (norm.reparacion > 0 || !prev) ? norm.reparacion : prev.reparacion,
           foto: keepLocalPhoto ? prev.foto : norm.foto
         });
       });
@@ -904,8 +914,14 @@
         } else {
           const serverNorm = normalizeRecord(serverRec);
           const serverMissingPhoto = localRec.foto && !serverNorm.foto;
-          if (serverMissingPhoto) {
-            mapById.set(id, { ...serverNorm, foto: localRec.foto });
+          const serverMissingGps = (localRec.lat !== null && localRec.lng !== null) && (serverNorm.lat === null || serverNorm.lng === null);
+          if (serverMissingPhoto || serverMissingGps) {
+            mapById.set(id, {
+              ...serverNorm,
+              lat: (serverNorm.lat !== null && serverNorm.lng !== null) ? serverNorm.lat : localRec.lat,
+              lng: (serverNorm.lat !== null && serverNorm.lng !== null) ? serverNorm.lng : localRec.lng,
+              foto: serverNorm.foto || localRec.foto
+            });
           } else {
             delete pendingMap[id];
             pendingChanged = true;
