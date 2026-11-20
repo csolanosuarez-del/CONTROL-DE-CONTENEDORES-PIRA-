@@ -412,6 +412,7 @@
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbydlRNoUEwB9ncCWfZPtS1Co2Q3jWaX0KKdkOJ9KsJFtxCue5H4Urbg1aGFxDbDIrOZ/exec';
     const STORAGE_KEY = 'pirai_contenedores_v1';
+    const PENDING_KEY = 'pirai_contenedores_pending_v1';
 
     const ALLOWED_TYPES = [
       'contenedor 1.5 m3',
@@ -423,8 +424,7 @@
 
     let records = [];
     let map, markersLayer;
-    let pendingUpsert = null;
-    let pendingUpsertUntil = 0;
+    let pendingMap = {};
 
     function setStatus(msg, isError = false) {
       const el = document.getElementById('syncStatus');
@@ -586,12 +586,41 @@
       } catch (e) {}
     }
 
+    function savePending() {
+      try {
+        localStorage.setItem(PENDING_KEY, JSON.stringify(pendingMap));
+      } catch (e) {}
+    }
+
+    function loadPending() {
+      try {
+        const raw = localStorage.getItem(PENDING_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return {};
+        const now = Date.now();
+        const cleaned = {};
+        Object.keys(parsed).forEach(k => {
+          const item = parsed[k];
+          if (item && item.expiresAt && item.expiresAt > now && item.record) {
+            cleaned[k] = {
+              record: normalizeRecord(item.record),
+              expiresAt: item.expiresAt
+            };
+          }
+        });
+        return cleaned;
+      } catch (e) {
+        return {};
+      }
+    }
+
     function loadLocal() {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             return parsed.map(normalizeRecord);
           }
         }
@@ -770,6 +799,33 @@
       }).join('');
     }
 
+    function applyPendingToList(list) {
+      const now = Date.now();
+      let changed = false;
+      Object.keys(pendingMap).forEach(id => {
+        const entry = pendingMap[id];
+        if (!entry || entry.expiresAt <= now) {
+          delete pendingMap[id];
+          changed = true;
+          return;
+        }
+        const localRec = normalizeRecord(entry.record);
+        const idx = list.findIndex(item => item.id === id);
+        const serverRec = idx >= 0 ? list[idx] : null;
+        const serverMissingPhoto = localRec.foto && (!serverRec || !serverRec.foto);
+
+        if (!serverRec || serverMissingPhoto) {
+          if (idx >= 0) list[idx] = localRec;
+          else list.push(localRec);
+        } else {
+          delete pendingMap[id];
+          changed = true;
+        }
+      });
+      if (changed) savePending();
+      return list;
+    }
+
     async function syncFromSheets() {
       setStatus('Sincronizando desde Google Sheets...');
       try {
@@ -784,32 +840,30 @@
           throw new Error('Apps Script devolvió HTML en lugar de JSON (revisa permisos o vinculación a la hoja)');
         }
         if (!data.ok) throw new Error(data.error || 'Respuesta inválida');
+
         if (Array.isArray(data.records) && data.records.length > 0) {
-          let merged = data.records.map(normalizeRecord);
-
-          if (pendingUpsert && Date.now() < pendingUpsertUntil) {
-            const idx = merged.findIndex(item => item.id === pendingUpsert.id);
-            const localRec = records.find(item => item.id === pendingUpsert.id) || pendingUpsert;
-            const serverRec = idx >= 0 ? merged[idx] : null;
-            const serverMissingPhoto = localRec.foto && (!serverRec || !serverRec.foto);
-
-            if (!serverRec || serverMissingPhoto) {
-              if (idx >= 0) merged[idx] = localRec;
-              else merged.push(localRec);
-            } else {
-              pendingUpsert = null;
-            }
-          }
-
+          const merged = applyPendingToList(data.records.map(normalizeRecord));
           records = merged;
           saveLocal();
           render();
           setStatus(`Sincronizado: ${records.length} registros desde Google Sheets (${new Date().toLocaleTimeString()})`);
         } else {
-          setStatus(`Conectado a Google Sheets (hoja vacía). Usa "Subir Base a Nube" para enviar tus ${records.length} registros.`);
+          const mergedPending = applyPendingToList([...records]);
+          if (mergedPending.length > 0 && records.length === 0) {
+            records = mergedPending;
+            saveLocal();
+            render();
+          }
+          setStatus(`La hoja en Google Sheets devolvió 0 registros. Se conservan ${records.length} registros locales.`);
         }
       } catch (err) {
-        setStatus(`Error al sincronizar: ${err.message}`, true);
+        const mergedPending = applyPendingToList([...records]);
+        if (mergedPending.length > 0) {
+          records = mergedPending;
+          saveLocal();
+          render();
+        }
+        setStatus(`Error al sincronizar (se conservan ${records.length} locales): ${err.message}`, true);
       }
     }
 
@@ -876,7 +930,7 @@
           await new Promise(r => setTimeout(r, 900));
         }
         setStatus('Envío completado. Verificando datos en Google Sheets...');
-        setTimeout(syncFromSheets, 1500);
+        setTimeout(syncFromSheets, 2000);
       } catch (err) {
         setStatus(`Error al subir base: ${err.message}`, true);
       }
@@ -965,18 +1019,20 @@
       if (idx >= 0) records[idx] = updated;
       else records.push(updated);
 
-      pendingUpsert = updated;
-      pendingUpsertUntil = Date.now() + 12000;
-
+      pendingMap[updated.id] = {
+        record: updated,
+        expiresAt: Date.now() + 30000
+      };
+      savePending();
       saveLocal();
       render();
       renderDetail(updated);
       closeModal();
 
-      setStatus(`Guardado local de ${updated.id}. Subiendo a Google Sheets...`);
+      setStatus(`Guardado local de ${updated.id}. Enviando a Google Sheets...`);
       try {
         await postToSheets({ action: 'upsert', record: updated }, true);
-        setTimeout(syncFromSheets, 2500);
+        setTimeout(syncFromSheets, 3500);
       } catch (err) {
         setStatus(`Guardado local; error en nube: ${err.message}`, true);
       }
@@ -1037,7 +1093,9 @@
     });
 
     initMap();
-    records = loadLocal();
+    pendingMap = loadPending();
+    records = applyPendingToList(loadLocal());
+    saveLocal();
     render();
     syncFromSheets();
   </script>
