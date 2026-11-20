@@ -178,6 +178,7 @@
     .form-grid .full { grid-column: 1 / -1; }
     label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    .hint-inline { font-size: 0.72rem; color: var(--primary); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -284,6 +285,7 @@
           <div>
             <label>ID</label>
             <input id="fId" required />
+            <div id="fIdHint" class="hint-inline" style="display:none"></div>
           </div>
           <div>
             <label>Distrito</label>
@@ -353,6 +355,28 @@
       const el = document.getElementById('syncStatus');
       el.textContent = msg;
       el.style.color = isError ? '#f87171' : '#94a3b8';
+    }
+
+    function getNextCorrelativeId() {
+      let maxNum = 0;
+      let prefix = 'CONT-';
+      let padLen = 3;
+
+      records.forEach(r => {
+        const rawId = String(r.id || '').trim();
+        const match = rawId.match(/^(.*?)(\d+)$/);
+        if (match) {
+          const num = parseInt(match[2], 10);
+          if (!Number.isNaN(num) && num >= maxNum) {
+            maxNum = num;
+            if (match[1]) prefix = match[1];
+            padLen = Math.max(3, match[2].length);
+          }
+        }
+      });
+
+      const nextNum = String(maxNum + 1).padStart(padLen, '0');
+      return `${prefix}${nextNum}`;
     }
 
     function normalizeRecord(raw) {
@@ -636,8 +660,20 @@
 
     function openEditModal(id = '') {
       const rec = id ? records.find(r => r.id === id) : null;
+      const hintEl = document.getElementById('fIdHint');
+      const suggestedId = rec ? rec.id : getNextCorrelativeId();
+
       document.getElementById('modalTitle').textContent = rec ? `Editar ${rec.id}` : 'Nuevo Punto de Contenedores';
-      document.getElementById('fId').value = rec ? rec.id : '';
+      document.getElementById('fId').value = suggestedId;
+
+      if (!rec) {
+        hintEl.textContent = `Correlativo sugerido automáticamente (${suggestedId}). Puedes editarlo si lo necesitas.`;
+        hintEl.style.display = 'block';
+      } else {
+        hintEl.textContent = '';
+        hintEl.style.display = 'none';
+      }
+
       document.getElementById('fDistrito').value = rec ? rec.distrito : '';
       document.getElementById('fLugar').value = rec ? rec.lugar : '';
       document.getElementById('fTipo').value = rec ? rec.tipo : '';
