@@ -93,7 +93,7 @@
       background: #162032;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 6px 10px;
+      padding: 7px 11px;
       font-size: 0.82rem;
       line-height: 1.35;
       display: inline-flex;
@@ -300,7 +300,7 @@
       <div class="left-col">
         <div id="map"></div>
         <div class="legend">
-          🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Toca o haz clic en un marcador para ver su foto y unidades aquí abajo.
+          🟢 Contenedor de 1.5 m³ | 🔵 Caja de 10 m³ | 🟠 Caja autocompactadora de 15 m³. Toca o haz clic en un marcador para ver su foto y unidades aquí abajo.
         </div>
         <div id="detailCard" class="detail-box">
           <h3>Toca un contenedor en el mapa</h3>
@@ -351,12 +351,10 @@
             <label>Tipo de Contenedor</label>
             <select id="fTipo" required>
               <option value="">Selecciona un tipo...</option>
-              <option value="1.5 m³">1.5 m³</option>
-              <option value="10 m³">10 m³</option>
-              <option value="Autocompactadora">Autocompactadora</option>
-              <option value="__otro__">Otro...</option>
+              <option value="Contenedor de 1.5 m³">Contenedor de 1.5 m³</option>
+              <option value="Caja de 10 m³">Caja de 10 m³</option>
+              <option value="Caja autocompactadora de 15 m³">Caja autocompactadora de 15 m³</option>
             </select>
-            <input id="fTipoCustom" placeholder="Especificar otro tipo..." style="margin-top:6px; display:none;" />
           </div>
           <div>
             <label>Estado</label>
@@ -410,6 +408,12 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbydlRNoUEwB9ncCWfZPtS1Co2Q3jWaX0KKdkOJ9KsJFtxCue5H4Urbg1aGFxDbDIrOZ/exec';
     const STORAGE_KEY = 'pirai_contenedores_v1';
 
+    const FIXED_TYPES = [
+      { key: '1.5', label: 'Contenedor de 1.5 m³', shortLabel: '1.5 m³' },
+      { key: '10', label: 'Caja de 10 m³', shortLabel: '10 m³' },
+      { key: '15', label: 'Caja autocompactadora de 15 m³', shortLabel: '15 m³ autocomp.' }
+    ];
+
     const INITIAL_DATA = [];
 
     let records = [];
@@ -435,49 +439,23 @@
       el.style.color = isError ? '#f87171' : '#93c5fd';
     }
 
+    function matchFixedType(tipoVal) {
+      const t = String(tipoVal || '').toLowerCase().replace(',', '.').replace(/\s+/g, ' ').trim();
+      if (!t) return null;
+      if (t.includes('15') || t.includes('compact') || t.includes('autocomp')) return '15';
+      if (t.includes('10')) return '10';
+      if (t.includes('1.5')) return '1.5';
+      return null;
+    }
+
     function setTipoField(tipoVal) {
       const sel = document.getElementById('fTipo');
-      const customInp = document.getElementById('fTipoCustom');
-      const val = String(tipoVal || '').trim();
-      const standardOptions = ['1.5 m³', '10 m³', 'Autocompactadora'];
-
-      if (!val) {
-        sel.value = '';
-        customInp.value = '';
-        customInp.style.display = 'none';
-        return;
-      }
-
-      if (standardOptions.includes(val)) {
-        sel.value = val;
-        customInp.value = '';
-        customInp.style.display = 'none';
-      } else {
-        sel.value = '__otro__';
-        customInp.value = val;
-        customInp.style.display = 'block';
-      }
+      const matchedKey = matchFixedType(tipoVal);
+      if (matchedKey === '1.5') sel.value = 'Contenedor de 1.5 m³';
+      else if (matchedKey === '10') sel.value = 'Caja de 10 m³';
+      else if (matchedKey === '15') sel.value = 'Caja autocompactadora de 15 m³';
+      else sel.value = '';
     }
-
-    function getSelectedTipo() {
-      const sel = document.getElementById('fTipo').value;
-      const customInp = document.getElementById('fTipoCustom');
-      if (sel === '__otro__') {
-        return customInp.value.trim();
-      }
-      return sel.trim();
-    }
-
-    document.getElementById('fTipo').addEventListener('change', (e) => {
-      const customInp = document.getElementById('fTipoCustom');
-      if (e.target.value === '__otro__') {
-        customInp.style.display = 'block';
-        customInp.focus();
-      } else {
-        customInp.style.display = 'none';
-        customInp.value = '';
-      }
-    });
 
     function compressImageFile(file, maxWidth = 1024, quality = 0.72) {
       return new Promise((resolve, reject) => {
@@ -609,9 +587,9 @@
     }
 
     function getMarkerColor(tipo) {
-      const t = String(tipo || '').toLowerCase();
-      if (t.includes('compact') || t.includes('autocomp')) return '#f97316';
-      if (t.includes('10')) return '#3b82f6';
+      const key = matchFixedType(tipo);
+      if (key === '15') return '#f97316';
+      if (key === '10') return '#3b82f6';
       return '#10b981';
     }
 
@@ -636,38 +614,32 @@
 
     function renderTypeSummary(filtered) {
       const listEl = document.getElementById('typeSummaryList');
-      const preferredOrder = ['1.5 m³', '10 m³', 'Autocompactadora'];
-      const mapByType = new Map();
-
-      preferredOrder.forEach(t => {
-        mapByType.set(t, { tipo: t, total: 0, op: 0, noOp: 0 });
-      });
+      const totals = {
+        '1.5': { total: 0, op: 0, noOp: 0 },
+        '10': { total: 0, op: 0, noOp: 0 },
+        '15': { total: 0, op: 0, noOp: 0 }
+      };
 
       filtered.forEach(r => {
-        const tipo = (r.tipo || 'Sin tipo').trim();
+        const key = matchFixedType(r.tipo);
+        if (!key || !totals[key]) return;
         const op = Number(r.operativas) || 0;
         const noOp = Number(r.noOperativas) || 0;
-        const total = op + noOp;
-        if (!mapByType.has(tipo)) {
-          mapByType.set(tipo, { tipo, total: 0, op: 0, noOp: 0 });
-        }
-        const item = mapByType.get(tipo);
-        item.total += total;
-        item.op += op;
-        item.noOp += noOp;
+        totals[key].op += op;
+        totals[key].noOp += noOp;
+        totals[key].total += (op + noOp);
       });
 
-      const items = [...mapByType.values()];
-      listEl.innerHTML = items.map(it => {
-        const shortLabel = it.tipo === '1.5 m³' ? '1.5' : it.tipo;
+      listEl.innerHTML = FIXED_TYPES.map(ft => {
+        const t = totals[ft.key];
         return `
           <div class="type-chip">
-            <strong>${shortLabel}</strong>
-            <span>${it.total} total</span>
+            <strong>${ft.shortLabel}</strong>
+            <span>${t.total} total</span>
             <span>·</span>
-            <span class="type-op">${it.op} op</span>
+            <span class="type-op">${t.op} op</span>
             <span>·</span>
-            <span class="type-noop">${it.noOp} inoperables</span>
+            <span class="type-noop">${t.noOp} inoperables</span>
           </div>
         `;
       }).join('');
@@ -705,7 +677,7 @@
       const curEst = estSel.value;
 
       const dists = [...new Set(records.map(r => r.distrito).filter(v => v !== ''))].sort((a, b) => a - b);
-      const tipos = [...new Set(['1.5 m³', '10 m³', 'Autocompactadora', ...records.map(r => r.tipo).filter(Boolean)])];
+      const tipos = FIXED_TYPES.map(ft => ft.label);
       const ests = [...new Set(records.map(r => r.estado).filter(Boolean))].sort();
 
       distSel.innerHTML = '<option value="">Todos los Distritos</option>' + dists.map(d => `<option value="${d}">${d}</option>`).join('');
@@ -948,9 +920,9 @@
 
     document.getElementById('pointForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const tipoFinal = getSelectedTipo();
+      const tipoFinal = document.getElementById('fTipo').value.trim();
       if (!tipoFinal) {
-        alert('Por favor selecciona o especifica el tipo de contenedor.');
+        alert('Por favor selecciona uno de los 3 tipos de contenedor.');
         return;
       }
 
