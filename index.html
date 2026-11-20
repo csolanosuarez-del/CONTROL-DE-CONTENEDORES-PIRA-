@@ -601,6 +601,23 @@
         return;
       }
 
+      const firstOk = confirm(
+        '⚠️ ATENCIÓN: "Subir Base a Nube" reemplazará los datos de la hoja en Google Sheets con los ' +
+        records.length + ' registros cargados en este dispositivo.\n\n' +
+        'Para editar o crear puntos en campo normalmente solo debes usar "Guardar y Sincronizar".\n\n' +
+        '¿Deseas continuar?'
+      );
+      if (!firstOk) {
+        setStatus('Subida masiva cancelada.');
+        return;
+      }
+
+      const code = prompt('Escribe SUBIR en mayúsculas para confirmar que deseas sobrescribir la base en la nube:');
+      if (code !== 'SUBIR') {
+        setStatus('Subida masiva cancelada (confirmación no coincide).');
+        return;
+      }
+
       const batchSize = 25;
       try {
         for (let i = 0; i < records.length; i += batchSize) {
