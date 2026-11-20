@@ -300,7 +300,7 @@
       <div class="left-col">
         <div id="map"></div>
         <div class="legend">
-          🟢 Contenedor de 1.5 m³ | 🔵 Caja de 10 m³ | 🟠 Caja autocompactadora de 15 m³. Toca o haz clic en un marcador para ver su foto y unidades aquí abajo.
+          🟢 Contenedor de 1.5 m³ | 🔵 Caja de 10 m³ | 🟠 Autocompactadora. Toca o haz clic en un marcador para ver su foto y unidades aquí abajo.
         </div>
         <div id="detailCard" class="detail-box">
           <h3>Toca un contenedor en el mapa</h3>
@@ -353,7 +353,7 @@
               <option value="">Selecciona un tipo...</option>
               <option value="Contenedor de 1.5 m³">Contenedor de 1.5 m³</option>
               <option value="Caja de 10 m³">Caja de 10 m³</option>
-              <option value="Caja autocompactadora de 15 m³">Caja autocompactadora de 15 m³</option>
+              <option value="Autocompactadora">Autocompactadora</option>
             </select>
           </div>
           <div>
@@ -411,7 +411,7 @@
     const FIXED_TYPES = [
       { key: '1.5', label: 'Contenedor de 1.5 m³', shortLabel: '1.5 m³' },
       { key: '10', label: 'Caja de 10 m³', shortLabel: '10 m³' },
-      { key: '15', label: 'Caja autocompactadora de 15 m³', shortLabel: '15 m³ autocomp.' }
+      { key: 'autocomp', label: 'Autocompactadora', shortLabel: 'Autocompactadora' }
     ];
 
     const INITIAL_DATA = [];
@@ -442,7 +442,7 @@
     function matchFixedType(tipoVal) {
       const t = String(tipoVal || '').toLowerCase().replace(',', '.').replace(/\s+/g, ' ').trim();
       if (!t) return null;
-      if (t.includes('15') || t.includes('compact') || t.includes('autocomp')) return '15';
+      if (t.includes('compact') || t.includes('autocomp') || t.includes('15')) return 'autocomp';
       if (t.includes('10')) return '10';
       if (t.includes('1.5')) return '1.5';
       return null;
@@ -453,7 +453,7 @@
       const matchedKey = matchFixedType(tipoVal);
       if (matchedKey === '1.5') sel.value = 'Contenedor de 1.5 m³';
       else if (matchedKey === '10') sel.value = 'Caja de 10 m³';
-      else if (matchedKey === '15') sel.value = 'Caja autocompactadora de 15 m³';
+      else if (matchedKey === 'autocomp') sel.value = 'Autocompactadora';
       else sel.value = '';
     }
 
@@ -588,7 +588,7 @@
 
     function getMarkerColor(tipo) {
       const key = matchFixedType(tipo);
-      if (key === '15') return '#f97316';
+      if (key === 'autocomp') return '#f97316';
       if (key === '10') return '#3b82f6';
       return '#10b981';
     }
@@ -617,7 +617,7 @@
       const totals = {
         '1.5': { total: 0, op: 0, noOp: 0 },
         '10': { total: 0, op: 0, noOp: 0 },
-        '15': { total: 0, op: 0, noOp: 0 }
+        'autocomp': { total: 0, op: 0, noOp: 0 }
       };
 
       filtered.forEach(r => {
