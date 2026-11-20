@@ -69,6 +69,41 @@
       padding: 7px 10px;
     }
     .container { max-width: 1450px; margin: 0 auto; padding: 16px; }
+    .type-summary {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .type-summary-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+    .type-summary-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .type-chip {
+      background: #162032;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      line-height: 1.35;
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .type-chip strong { color: var(--text); }
+    .type-op { color: #34d399; font-weight: 600; }
+    .type-noop { color: #f87171; font-weight: 600; }
     .kpis {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -211,6 +246,11 @@
   </header>
 
   <div class="container">
+    <section id="typeSummaryBox" class="type-summary">
+      <div class="type-summary-title">Total Contenedores por Tipo</div>
+      <div id="typeSummaryList" class="type-summary-list"></div>
+    </section>
+
     <section class="kpis">
       <div class="kpi">
         <div class="label">Total Puntos</div>
@@ -594,6 +634,45 @@
       `;
     }
 
+    function renderTypeSummary(filtered) {
+      const listEl = document.getElementById('typeSummaryList');
+      const preferredOrder = ['1.5 m³', '10 m³', 'Autocompactadora'];
+      const mapByType = new Map();
+
+      preferredOrder.forEach(t => {
+        mapByType.set(t, { tipo: t, total: 0, op: 0, noOp: 0 });
+      });
+
+      filtered.forEach(r => {
+        const tipo = (r.tipo || 'Sin tipo').trim();
+        const op = Number(r.operativas) || 0;
+        const noOp = Number(r.noOperativas) || 0;
+        const total = op + noOp;
+        if (!mapByType.has(tipo)) {
+          mapByType.set(tipo, { tipo, total: 0, op: 0, noOp: 0 });
+        }
+        const item = mapByType.get(tipo);
+        item.total += total;
+        item.op += op;
+        item.noOp += noOp;
+      });
+
+      const items = [...mapByType.values()];
+      listEl.innerHTML = items.map(it => {
+        const shortLabel = it.tipo === '1.5 m³' ? '1.5' : it.tipo;
+        return `
+          <div class="type-chip">
+            <strong>${shortLabel}</strong>
+            <span>${it.total} total</span>
+            <span>·</span>
+            <span class="type-op">${it.op} op</span>
+            <span>·</span>
+            <span class="type-noop">${it.noOp} inoperables</span>
+          </div>
+        `;
+      }).join('');
+    }
+
     function getFilteredRecords() {
       const q = document.getElementById('searchInput').value.trim().toLowerCase();
       const dist = document.getElementById('filterDistrito').value;
@@ -641,6 +720,7 @@
     function render() {
       updateFilterOptions();
       const filtered = getFilteredRecords();
+      renderTypeSummary(filtered);
 
       const totalPuntos = filtered.length;
       const conGps = filtered.filter(r => r.lat !== null && r.lng !== null).length;
@@ -718,7 +798,6 @@
         if (Array.isArray(data.records) && data.records.length > 0) {
           let merged = data.records.map(normalizeRecord);
 
-          // Si hubo un guardado reciente en este dispositivo, protegerlo si el servidor aún no refleja la foto o cambio
           if (pendingUpsert && Date.now() < pendingUpsertUntil) {
             const idx = merged.findIndex(item => item.id === pendingUpsert.id);
             const localRec = records.find(item => item.id === pendingUpsert.id) || pendingUpsert;
