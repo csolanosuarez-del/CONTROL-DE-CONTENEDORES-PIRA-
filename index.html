@@ -123,7 +123,7 @@
     .kpi .sub { font-size: 0.75rem; color: var(--muted); }
     .filters {
       display: grid;
-      grid-template-columns: 2fr repeat(5, 1fr);
+      grid-template-columns: 2fr repeat(4, 1fr);
       gap: 10px;
       margin-bottom: 16px;
     }
@@ -200,6 +200,7 @@
     .pill-ok { background: rgba(16, 185, 129, 0.16); color: #34d399; }
     .pill-warn { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
     .pill-bad { background: rgba(239, 68, 68, 0.16); color: #f87171; }
+    .pill-info { background: rgba(59, 130, 246, 0.16); color: #60a5fa; }
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -300,7 +301,6 @@
         <option value="contenedor 10 m3">contenedor 10 m3</option>
         <option value="caja autocompactadora">caja autocompactadora</option>
       </select>
-      <select id="filterEstado"><option value="">Todos los Estados</option></select>
       <select id="filterUnidades">
         <option value="">Unidades: Todas</option>
         <option value="con_standby">Con stand by / relevo</option>
@@ -338,7 +338,7 @@
               <th>Unidades</th>
               <th>Stand by / Rep.</th>
               <th>GPS</th>
-              <th>Estado</th>
+              <th>Estado (Calc.)</th>
               <th>Foto</th>
               <th>Acción</th>
             </tr>
@@ -363,7 +363,7 @@
             <label>Distrito</label>
             <input id="fDistrito" type="number" />
           </div>
-          <div class="full">
+          <div>
             <label>Lugar / Ubicación</label>
             <input id="fLugar" required />
           </div>
@@ -375,10 +375,6 @@
               <option value="contenedor 10 m3">contenedor 10 m3</option>
               <option value="caja autocompactadora">caja autocompactadora</option>
             </select>
-          </div>
-          <div>
-            <label>Estado</label>
-            <input id="fEstado" placeholder="Ej: Operativo, Base / Relevo, Taller" />
           </div>
           <div>
             <label>Operativos</label>
@@ -473,6 +469,26 @@
       return Number.isNaN(n) ? 0 : n;
     }
 
+    function calculateStatus(rec) {
+      const op = parseNum(rec.operativas);
+      const noOp = parseNum(rec.noOperativas);
+      const sb = parseNum(rec.standBy);
+      const rep = parseNum(rec.reparacion);
+
+      if (noOp > 0 && op === 0) return 'No Operativo';
+      if (noOp > 0 && op > 0) return 'Con Novedad';
+      if (rep > 0) return 'En Reparación';
+      if (op === 0 && sb > 0) return 'Stand by / Relevo';
+      return 'Operativo';
+    }
+
+    function getStatusPillClass(estadoCalc) {
+      if (estadoCalc === 'No Operativo') return 'pill-bad';
+      if (estadoCalc === 'Con Novedad' || estadoCalc === 'En Reparación') return 'pill-warn';
+      if (estadoCalc === 'Stand by / Relevo') return 'pill-info';
+      return 'pill-ok';
+    }
+
     function normalizeType(tipoVal) {
       const raw = String(tipoVal || '').toLowerCase().replace(',', '.').replace(/³/g, '3').replace(/\s+/g, ' ').trim();
       if (!raw) return 'contenedor 1.5 m3';
@@ -563,21 +579,11 @@
     }
 
     function normalizeRecord(raw) {
-      let op = parseNum(raw.operativas ?? raw.OPERATIVOS);
-      let noOp = parseNum(raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS']);
+      const op = parseNum(raw.operativas ?? raw.OPERATIVOS);
+      const noOp = parseNum(raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS']);
       const standBy = parseNum(raw.standBy ?? raw.stand_by ?? raw.relevo ?? raw['STAND BY'] ?? raw['STAND BY / RELEVO']);
       const reparacion = parseNum(raw.reparacion ?? raw.enReparacion ?? raw.en_reparacion ?? raw['EN REPARACION'] ?? raw['REPARACION']);
-
-      const rawCant = raw.cantidad ?? raw.CANTIDAD;
-      let cant = (rawCant !== '' && rawCant !== undefined && rawCant !== null) ? parseNum(rawCant) : (op + noOp);
-
-      if (op === 0 && noOp === 0 && cant > 0) {
-        const est = String(raw.estado ?? raw.ESTADO ?? '').toLowerCase();
-        if (est.includes('no op') || est.includes('inoper')) noOp = cant;
-        else op = cant;
-      } else {
-        cant = op + noOp;
-      }
+      const cant = op + noOp;
 
       const latRaw = raw.lat ?? raw.LAT;
       const lngRaw = raw.lng ?? raw.LNG;
@@ -588,7 +594,7 @@
 
       const distRaw = raw.distrito ?? raw.DISTRITO;
 
-      return {
+      const base = {
         id: String(raw.id ?? raw.ID ?? '').trim(),
         lugar: String(raw.lugar ?? raw.LUGAR ?? '').trim(),
         distrito: distRaw === '' || distRaw === undefined || distRaw === null ? '' : Number(distRaw),
@@ -600,12 +606,13 @@
         tipo: normalizeType(raw.tipo ?? raw.TIPO ?? ''),
         lat,
         lng,
-        estado: String(raw.estado ?? raw.ESTADO ?? '').trim(),
         supervisor: String(raw.supervisor ?? raw.SUPERVISOR ?? '').trim(),
         observaciones: String(raw.observaciones ?? raw.OBSERVACIONES ?? '').trim(),
         foto: String(raw.foto ?? raw.FOTO ?? '').trim(),
         ultimaActualizacion: String(raw.ultimaActualizacion ?? raw['ULTIMA ACTUALIZACIÓN'] ?? '').trim()
       };
+      base.estado = calculateStatus(base);
+      return base;
     }
 
     function saveLocal() {
@@ -703,11 +710,12 @@
         box.innerHTML = '<h3>Toca un contenedor en el mapa</h3><div class="sync-status">Aquí se mostrará la foto y el detalle de unidades del punto seleccionado.</div>';
         return;
       }
+      const estadoCalc = calculateStatus(rec);
       const imgHtml = rec.foto ? `<img src="${rec.foto}" alt="${rec.lugar}" onerror="this.style.display='none'" />` : '';
       const gpsText = (rec.lat !== null && rec.lng !== null) ? `${rec.lat}, ${rec.lng}` : 'Sin GPS';
       box.innerHTML = `
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
-        <div class="sync-status">Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${rec.estado || '-'}</div>
+        <div class="sync-status">Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
         <div style="margin-top:8px; font-size:0.86rem; line-height:1.5;">
           <strong>Unidades:</strong> ${rec.operativas} operativos / ${rec.noOperativas} no operativos (Total: ${rec.cantidad})<br/>
           <strong>Base / Taller:</strong> ${rec.standBy} stand by (relevo) · ${rec.reparacion} en reparación<br/>
@@ -764,7 +772,6 @@
       const q = document.getElementById('searchInput').value.trim().toLowerCase();
       const dist = document.getElementById('filterDistrito').value;
       const tipo = document.getElementById('filterTipo').value;
-      const est = document.getElementById('filterEstado').value;
       const unid = document.getElementById('filterUnidades').value;
       const gps = document.getElementById('filterGps').value;
 
@@ -772,7 +779,6 @@
         if (q && !r.id.toLowerCase().includes(q) && !r.lugar.toLowerCase().includes(q)) return false;
         if (dist && String(r.distrito) !== dist) return false;
         if (tipo && normalizeType(r.tipo) !== tipo) return false;
-        if (est && r.estado !== est) return false;
         if (unid === 'con_standby' && r.standBy <= 0) return false;
         if (unid === 'con_reparacion' && r.reparacion <= 0) return false;
         if (unid === 'con_no_op' && r.noOperativas <= 0) return false;
@@ -786,19 +792,10 @@
 
     function updateFilterOptions() {
       const distSel = document.getElementById('filterDistrito');
-      const estSel = document.getElementById('filterEstado');
-
       const curDist = distSel.value;
-      const curEst = estSel.value;
-
       const dists = [...new Set(records.map(r => r.distrito).filter(v => v !== ''))].sort((a, b) => a - b);
-      const ests = [...new Set(records.map(r => r.estado).filter(Boolean))].sort();
-
       distSel.innerHTML = '<option value="">Todos los Distritos</option>' + dists.map(d => `<option value="${d}">${d}</option>`).join('');
-      estSel.innerHTML = '<option value="">Todos los Estados</option>' + ests.map(e => `<option value="${e}">${e}</option>`).join('');
-
       distSel.value = curDist;
-      estSel.value = curEst;
     }
 
     function render() {
@@ -839,7 +836,8 @@
             opacity: 1,
             fillOpacity: 0.9
           });
-          marker.bindPopup(`<strong>${r.id}</strong><br/>${r.lugar}<br/>${r.tipo}<br/>Op: ${r.operativas} | Stand by: ${r.standBy} | Rep: ${r.reparacion} | No op: ${r.noOperativas}`);
+          const estCalc = calculateStatus(r);
+          marker.bindPopup(`<strong>${r.id}</strong><br/>${r.lugar}<br/>${r.tipo} (${estCalc})<br/>Op: ${r.operativas} | Stand by: ${r.standBy} | Rep: ${r.reparacion} | No op: ${r.noOperativas}`);
           marker.on('click', () => renderDetail(r));
           marker.addTo(markersLayer);
           bounds.push([r.lat, r.lng]);
@@ -854,6 +852,8 @@
         const hasGps = r.lat !== null && r.lng !== null;
         const pillClass = r.noOperativas > 0 ? 'pill-bad' : 'pill-ok';
         const basePillClass = r.reparacion > 0 ? 'pill-warn' : 'pill-ok';
+        const estCalc = calculateStatus(r);
+        const estPillClass = getStatusPillClass(estCalc);
         return `
           <tr>
             <td><strong>${r.id}</strong></td>
@@ -863,7 +863,7 @@
             <td><span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} no op</span></td>
             <td><span class="pill ${basePillClass}">${r.standBy} SB / ${r.reparacion} Rep</span></td>
             <td>${hasGps ? '📍 Sí' : '—'}</td>
-            <td>${r.estado}</td>
+            <td><span class="pill ${estPillClass}">${estCalc}</span></td>
             <td>${r.foto ? '📷 Sí' : '—'}</td>
             <td><button type="button" onclick="openEditModal('${r.id.replace(/'/g, "\\'")}')">Editar</button></td>
           </tr>
@@ -888,14 +888,22 @@
         const serverHasGps = norm.lat !== null && norm.lng !== null;
         const prevHasGps = prev && prev.lat !== null && prev.lng !== null;
 
-        mapById.set(norm.id, {
+        const preservedNoOp = (norm.noOperativas === 0 && prev && prev.noOperativas > 0) ? prev.noOperativas : norm.noOperativas;
+        const preservedStandBy = (norm.standBy === 0 && prev && prev.standBy > 0) ? prev.standBy : norm.standBy;
+        const preservedRep = (norm.reparacion === 0 && prev && prev.reparacion > 0) ? prev.reparacion : norm.reparacion;
+
+        const merged = {
           ...norm,
+          noOperativas: preservedNoOp,
+          standBy: preservedStandBy,
+          reparacion: preservedRep,
+          cantidad: norm.operativas + preservedNoOp,
           lat: serverHasGps ? norm.lat : (prevHasGps ? prev.lat : null),
           lng: serverHasGps ? norm.lng : (prevHasGps ? prev.lng : null),
-          standBy: (norm.standBy > 0 || !prev) ? norm.standBy : prev.standBy,
-          reparacion: (norm.reparacion > 0 || !prev) ? norm.reparacion : prev.reparacion,
           foto: keepLocalPhoto ? prev.foto : norm.foto
-        });
+        };
+        merged.estado = calculateStatus(merged);
+        mapById.set(norm.id, merged);
       });
 
       const now = Date.now();
@@ -915,13 +923,24 @@
           const serverNorm = normalizeRecord(serverRec);
           const serverMissingPhoto = localRec.foto && !serverNorm.foto;
           const serverMissingGps = (localRec.lat !== null && localRec.lng !== null) && (serverNorm.lat === null || serverNorm.lng === null);
-          if (serverMissingPhoto || serverMissingGps) {
-            mapById.set(id, {
+          const serverWipedCounts =
+            (localRec.noOperativas > 0 && serverNorm.noOperativas === 0) ||
+            (localRec.standBy > 0 && serverNorm.standBy === 0) ||
+            (localRec.reparacion > 0 && serverNorm.reparacion === 0);
+
+          if (serverMissingPhoto || serverMissingGps || serverWipedCounts) {
+            const keepRec = {
               ...serverNorm,
+              noOperativas: serverNorm.noOperativas > 0 ? serverNorm.noOperativas : localRec.noOperativas,
+              standBy: serverNorm.standBy > 0 ? serverNorm.standBy : localRec.standBy,
+              reparacion: serverNorm.reparacion > 0 ? serverNorm.reparacion : localRec.reparacion,
               lat: (serverNorm.lat !== null && serverNorm.lng !== null) ? serverNorm.lat : localRec.lat,
               lng: (serverNorm.lat !== null && serverNorm.lng !== null) ? serverNorm.lng : localRec.lng,
               foto: serverNorm.foto || localRec.foto
-            });
+            };
+            keepRec.cantidad = keepRec.operativas + keepRec.noOperativas;
+            keepRec.estado = calculateStatus(keepRec);
+            mapById.set(id, keepRec);
           } else {
             delete pendingMap[id];
             pendingChanged = true;
@@ -1061,7 +1080,6 @@
       document.getElementById('fDistrito').value = rec ? rec.distrito : '';
       document.getElementById('fLugar').value = rec ? rec.lugar : '';
       document.getElementById('fTipo').value = rec ? normalizeType(rec.tipo) : 'contenedor 1.5 m3';
-      document.getElementById('fEstado').value = rec ? rec.estado : 'Operativo';
       document.getElementById('fOperativas').value = rec ? rec.operativas : 0;
       document.getElementById('fNoOperativas').value = rec ? rec.noOperativas : 0;
       document.getElementById('fStandBy').value = rec ? rec.standBy : 0;
@@ -1118,7 +1136,6 @@
         tipo: tipoFinal,
         lat: latRaw === '' ? null : Number(latRaw),
         lng: lngRaw === '' ? null : Number(lngRaw),
-        estado: document.getElementById('fEstado').value.trim(),
         supervisor: document.getElementById('fSupervisor').value.trim(),
         observaciones: document.getElementById('fObservaciones').value.trim(),
         foto: document.getElementById('fFoto').value.trim(),
@@ -1131,7 +1148,7 @@
 
       pendingMap[updated.id] = {
         record: updated,
-        expiresAt: Date.now() + 60000
+        expiresAt: Date.now() + 90000
       };
       savePending();
       saveLocal();
@@ -1139,10 +1156,10 @@
       renderDetail(updated);
       closeModal();
 
-      setStatus(`Guardado local de ${updated.id}. Enviando a Google Sheets...`);
+      setStatus(`Guardado local de ${updated.id} (${updated.estado}). Enviando a Google Sheets...`);
       try {
         await postToSheets({ action: 'upsert', record: updated }, true);
-        setTimeout(syncFromSheets, 4000);
+        setTimeout(syncFromSheets, 4500);
       } catch (err) {
         setStatus(`Guardado local; error en nube: ${err.message}`, true);
       }
@@ -1157,7 +1174,7 @@
       const headers = ['ID','LUGAR','DISTRITO','CANTIDAD','OPERATIVOS','NO OPERATIVOS','STAND BY','REPARACION','TIPO','LAT','LNG','ESTADO','SUPERVISOR','OBSERVACIONES','FOTO','ULTIMA ACTUALIZACIÓN'];
       const rows = records.map(r => [
         r.id, r.lugar, r.distrito, r.cantidad, r.operativas, r.noOperativas,
-        r.standBy, r.reparacion, r.tipo, r.lat ?? '', r.lng ?? '', r.estado,
+        r.standBy, r.reparacion, r.tipo, r.lat ?? '', r.lng ?? '', calculateStatus(r),
         r.supervisor, r.observaciones, r.foto, r.ultimaActualizacion
       ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
       const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -1198,7 +1215,7 @@
       reader.readAsText(file);
     });
 
-    ['searchInput', 'filterDistrito', 'filterTipo', 'filterEstado', 'filterUnidades', 'filterGps'].forEach(id => {
+    ['searchInput', 'filterDistrito', 'filterTipo', 'filterUnidades', 'filterGps'].forEach(id => {
       document.getElementById(id).addEventListener('input', render);
       document.getElementById(id).addEventListener('change', render);
     });
