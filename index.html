@@ -485,7 +485,7 @@
       return 'contenedor 1.5 m3';
     }
 
-    function compressImageFile(file, maxWidth = 1024, quality = 0.72) {
+    function compressImageFile(file, maxWidth = 800, quality = 0.65) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
@@ -611,13 +611,38 @@
     function saveLocal() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-      } catch (e) {}
+      } catch (e) {
+        try {
+          const lightRecords = records.map(r => ({
+            ...r,
+            foto: r.foto && r.foto.startsWith('data:') ? '' : r.foto
+          }));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(lightRecords));
+        } catch (e2) {}
+      }
     }
 
     function savePending() {
       try {
         localStorage.setItem(PENDING_KEY, JSON.stringify(pendingMap));
-      } catch (e) {}
+      } catch (e) {
+        try {
+          const lightPending = {};
+          Object.keys(pendingMap).forEach(k => {
+            const item = pendingMap[k];
+            if (item && item.record) {
+              lightPending[k] = {
+                expiresAt: item.expiresAt,
+                record: {
+                  ...item.record,
+                  foto: item.record.foto && item.record.foto.startsWith('data:') ? '' : item.record.foto
+                }
+              };
+            }
+          });
+          localStorage.setItem(PENDING_KEY, JSON.stringify(lightPending));
+        } catch (e2) {}
+      }
     }
 
     function loadPending() {
@@ -649,7 +674,7 @@
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            return parsed.map(normalizeRecord);
+            return parsed.map(normalizeRecord).filter(r => r.id || r.lugar);
           }
         }
       } catch (e) {}
@@ -844,31 +869,52 @@
       }).join('');
     }
 
-    function applyPendingToList(list) {
+    function mergeServerAndLocal(serverList, localList) {
+      const mapById = new Map();
+
+      localList.forEach(item => {
+        const norm = normalizeRecord(item);
+        if (norm.id) mapById.set(norm.id, norm);
+      });
+
+      serverList.forEach(item => {
+        const norm = normalizeRecord(item);
+        if (!norm.id) return;
+        const prev = mapById.get(norm.id);
+        const keepLocalPhoto = prev && prev.foto && !norm.foto;
+        mapById.set(norm.id, {
+          ...norm,
+          foto: keepLocalPhoto ? prev.foto : norm.foto
+        });
+      });
+
       const now = Date.now();
-      let changed = false;
+      let pendingChanged = false;
       Object.keys(pendingMap).forEach(id => {
         const entry = pendingMap[id];
         if (!entry || entry.expiresAt <= now) {
           delete pendingMap[id];
-          changed = true;
+          pendingChanged = true;
           return;
         }
         const localRec = normalizeRecord(entry.record);
-        const idx = list.findIndex(item => item.id === id);
-        const serverRec = idx >= 0 ? list[idx] : null;
-        const serverMissingPhoto = localRec.foto && (!serverRec || !serverRec.foto);
-
-        if (!serverRec || serverMissingPhoto) {
-          if (idx >= 0) list[idx] = localRec;
-          else list.push(localRec);
+        const serverRec = serverList.find(s => normalizeRecord(s).id === id);
+        if (!serverRec) {
+          mapById.set(id, localRec);
         } else {
-          delete pendingMap[id];
-          changed = true;
+          const serverNorm = normalizeRecord(serverRec);
+          const serverMissingPhoto = localRec.foto && !serverNorm.foto;
+          if (serverMissingPhoto) {
+            mapById.set(id, { ...serverNorm, foto: localRec.foto });
+          } else {
+            delete pendingMap[id];
+            pendingChanged = true;
+          }
         }
       });
-      if (changed) savePending();
-      return list;
+
+      if (pendingChanged) savePending();
+      return Array.from(mapById.values());
     }
 
     async function syncFromSheets() {
@@ -886,28 +932,25 @@
         }
         if (!data.ok) throw new Error(data.error || 'Respuesta inválida');
 
-        if (Array.isArray(data.records) && data.records.length > 0) {
-          const merged = applyPendingToList(data.records.map(normalizeRecord));
-          records = merged;
+        const serverRecords = Array.isArray(data.records)
+          ? data.records.map(normalizeRecord).filter(r => r.id || r.lugar)
+          : [];
+
+        if (serverRecords.length > 0) {
+          records = mergeServerAndLocal(serverRecords, records);
           saveLocal();
           render();
-          setStatus(`Sincronizado: ${records.length} registros desde Google Sheets (${new Date().toLocaleTimeString()})`);
+          setStatus(`Sincronizado: ${serverRecords.length} en nube · ${records.length} activos (${new Date().toLocaleTimeString()})`);
         } else {
-          const mergedPending = applyPendingToList([...records]);
-          if (mergedPending.length > 0 && records.length === 0) {
-            records = mergedPending;
-            saveLocal();
-            render();
-          }
-          setStatus(`La hoja en Google Sheets devolvió 0 registros. Se conservan ${records.length} registros locales.`);
+          records = mergeServerAndLocal([], records);
+          saveLocal();
+          render();
+          setStatus(`La hoja devolvió 0 registros. Se conservan ${records.length} registros locales.`);
         }
       } catch (err) {
-        const mergedPending = applyPendingToList([...records]);
-        if (mergedPending.length > 0) {
-          records = mergedPending;
-          saveLocal();
-          render();
-        }
+        records = mergeServerAndLocal([], records);
+        saveLocal();
+        render();
         setStatus(`Error al sincronizar (se conservan ${records.length} locales): ${err.message}`, true);
       }
     }
@@ -1025,9 +1068,9 @@
     document.getElementById('fFotoFile').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      setPhotoMsg('Optimizando imagen para ahorrar espacio en Drive...');
+      setPhotoMsg('Optimizando imagen para ahorrar espacio...');
       try {
-        const compressed = await compressImageFile(file, 1024, 0.72);
+        const compressed = await compressImageFile(file, 800, 0.65);
         document.getElementById('fFoto').value = compressed.dataUrl;
         const origKb = Math.round(file.size / 1024);
         setPhotoMsg(`Optimizada: ${origKb} KB → ~${compressed.approxKb} KB (${compressed.width}x${compressed.height} px).`);
@@ -1072,7 +1115,7 @@
 
       pendingMap[updated.id] = {
         record: updated,
-        expiresAt: Date.now() + 30000
+        expiresAt: Date.now() + 60000
       };
       savePending();
       saveLocal();
@@ -1083,7 +1126,7 @@
       setStatus(`Guardado local de ${updated.id}. Enviando a Google Sheets...`);
       try {
         await postToSheets({ action: 'upsert', record: updated }, true);
-        setTimeout(syncFromSheets, 3500);
+        setTimeout(syncFromSheets, 4000);
       } catch (err) {
         setStatus(`Guardado local; error en nube: ${err.message}`, true);
       }
@@ -1128,7 +1171,7 @@
         try {
           const arr = JSON.parse(reader.result);
           if (!Array.isArray(arr)) throw new Error('El JSON debe ser una lista');
-          records = arr.map(normalizeRecord);
+          records = arr.map(normalizeRecord).filter(r => r.id || r.lugar);
           saveLocal();
           render();
           setStatus(`Cargados ${records.length} registros desde archivo JSON.`);
@@ -1146,7 +1189,7 @@
 
     initMap();
     pendingMap = loadPending();
-    records = applyPendingToList(loadLocal());
+    records = mergeServerAndLocal([], loadLocal());
     saveLocal();
     render();
     syncFromSheets();
