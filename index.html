@@ -69,43 +69,62 @@
       padding: 7px 10px;
     }
     .container { max-width: 1450px; margin: 0 auto; padding: 16px; }
-    .type-summary {
+
+    /* Cuadro Resumen Matriz */
+    .summary-card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 12px 14px;
       margin-bottom: 14px;
+      overflow-x: auto;
     }
-    .type-summary-title {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 8px;
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+      min-width: 640px;
     }
-    .type-summary-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+    .summary-table th,
+    .summary-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid rgba(51, 65, 85, 0.55);
+      text-align: center;
+      line-height: 1.25;
     }
-    .type-chip {
+    .summary-table th:last-child,
+    .summary-table td:last-child {
+      border-right: none;
+    }
+    .summary-table th {
       background: #162032;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 7px 11px;
+      color: var(--text);
+      font-weight: 700;
       font-size: 0.82rem;
-      line-height: 1.35;
-      display: inline-flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
     }
-    .type-chip strong { color: var(--text); }
-    .type-op { color: #34d399; font-weight: 600; }
-    .type-sb { color: #60a5fa; font-weight: 600; }
-    .type-rep { color: #fbbf24; font-weight: 600; }
-    .type-noop { color: #f87171; font-weight: 600; }
+    .summary-table td:first-child,
+    .summary-table th:first-child {
+      text-align: left;
+    }
+    .summary-table td:first-child {
+      font-weight: 700;
+      color: var(--text);
+      background: rgba(22, 32, 50, 0.45);
+    }
+    .summary-table td:last-child {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .summary-table tr.total-row td {
+      background: #131d2e;
+      font-weight: 700;
+      border-bottom: none;
+      color: #34d399;
+    }
+    .summary-table tr.total-row td:first-child {
+      color: var(--text);
+    }
+
     .kpis {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -249,9 +268,20 @@
   </header>
 
   <div class="container">
-    <section id="typeSummaryBox" class="type-summary">
-      <div class="type-summary-title">Total Contenedores por Tipo</div>
-      <div id="typeSummaryList" class="type-summary-list"></div>
+    <section class="summary-card">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>operables (en<br/>zona)</th>
+            <th>inoperables<br/>(en zona)</th>
+            <th>stand by<br/>(en base)</th>
+            <th>reparación<br/>(en<br/>base/taller)</th>
+            <th>total</th>
+          </tr>
+        </thead>
+        <tbody id="summaryBody"></tbody>
+      </table>
     </section>
 
     <section class="kpis">
@@ -266,22 +296,22 @@
         <div id="kpiOpNoOp" class="sub">0 op. / 0 no op.</div>
       </div>
       <div class="kpi">
-        <div class="label">Unidades Operativas</div>
+        <div class="label">Operables (en zona)</div>
         <div id="kpiOperativas" class="val" style="color:var(--primary)">0</div>
         <div class="sub">Listas para operar</div>
       </div>
       <div class="kpi">
-        <div class="label">Stand by / Relevo</div>
+        <div class="label">Stand by (en base)</div>
         <div id="kpiStandBy" class="val" style="color:var(--info)">0</div>
         <div class="sub">Operables de reserva</div>
       </div>
       <div class="kpi">
-        <div class="label">En Reparación</div>
+        <div class="label">Reparación (base/taller)</div>
         <div id="kpiReparacion" class="val" style="color:var(--warning)">0</div>
         <div class="sub">En taller / mantenimiento</div>
       </div>
       <div class="kpi">
-        <div class="label">Unidades No Operativas</div>
+        <div class="label">Inoperables (en zona)</div>
         <div id="kpiNoOperativas" class="val" style="color:var(--danger)">0</div>
         <div class="sub" id="kpiNovedad">0 puntos con novedad</div>
       </div>
@@ -303,10 +333,10 @@
       </select>
       <select id="filterUnidades">
         <option value="">Unidades: Todas</option>
-        <option value="con_standby">Con stand by / relevo</option>
-        <option value="con_reparacion">En reparación</option>
-        <option value="con_no_op">Con no operativos</option>
-        <option value="todo_op">Todos operativos</option>
+        <option value="con_standby">Con stand by (en base)</option>
+        <option value="con_reparacion">En reparación (base/taller)</option>
+        <option value="con_no_op">Con inoperables (en zona)</option>
+        <option value="todo_op">Todos operables</option>
       </select>
       <select id="filterGps">
         <option value="">GPS: Todos</option>
@@ -335,8 +365,9 @@
               <th>Lugar / Ubicación</th>
               <th>Dist.</th>
               <th>Tipo</th>
-              <th>Unidades</th>
+              <th>Operables / Inop.</th>
               <th>Stand by / Rep.</th>
+              <th>Total</th>
               <th>GPS</th>
               <th>Estado (Calc.)</th>
               <th>Foto</th>
@@ -377,19 +408,19 @@
             </select>
           </div>
           <div>
-            <label>Operativos</label>
+            <label>Operables (en zona)</label>
             <input id="fOperativas" type="number" min="0" value="0" />
           </div>
           <div>
-            <label>No Operativos</label>
+            <label>Inoperables (en zona)</label>
             <input id="fNoOperativas" type="number" min="0" value="0" />
           </div>
           <div>
-            <label>Stand by / Relevo (Operables)</label>
+            <label>Stand by (en base)</label>
             <input id="fStandBy" type="number" min="0" value="0" />
           </div>
           <div>
-            <label>En Reparación</label>
+            <label>Reparación (en base/taller)</label>
             <input id="fReparacion" type="number" min="0" value="0" />
           </div>
           <div>
@@ -467,6 +498,15 @@
       if (val === '' || val === null || val === undefined) return 0;
       const n = Number(String(val).replace(',', '.').trim());
       return Number.isNaN(n) ? 0 : n;
+    }
+
+    function calculateTotalUnits(rec) {
+      return (
+        parseNum(rec.operativas) +
+        parseNum(rec.noOperativas) +
+        parseNum(rec.standBy) +
+        parseNum(rec.reparacion)
+      );
     }
 
     function calculateStatus(rec) {
@@ -583,7 +623,7 @@
       const noOp = parseNum(raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS']);
       const standBy = parseNum(raw.standBy ?? raw.stand_by ?? raw.relevo ?? raw['STAND BY'] ?? raw['STAND BY / RELEVO']);
       const reparacion = parseNum(raw.reparacion ?? raw.enReparacion ?? raw.en_reparacion ?? raw['EN REPARACION'] ?? raw['REPARACION']);
-      const cant = op + noOp;
+      const cant = op + noOp + standBy + reparacion;
 
       const latRaw = raw.lat ?? raw.LAT;
       const lngRaw = raw.lng ?? raw.LNG;
@@ -711,14 +751,16 @@
         return;
       }
       const estadoCalc = calculateStatus(rec);
+      const totalUnid = calculateTotalUnits(rec);
       const imgHtml = rec.foto ? `<img src="${rec.foto}" alt="${rec.lugar}" onerror="this.style.display='none'" />` : '';
       const gpsText = (rec.lat !== null && rec.lng !== null) ? `${rec.lat}, ${rec.lng}` : 'Sin GPS';
       box.innerHTML = `
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
         <div class="sync-status">Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
         <div style="margin-top:8px; font-size:0.86rem; line-height:1.5;">
-          <strong>Unidades:</strong> ${rec.operativas} operativos / ${rec.noOperativas} no operativos (Total: ${rec.cantidad})<br/>
-          <strong>Base / Taller:</strong> ${rec.standBy} stand by (relevo) · ${rec.reparacion} en reparación<br/>
+          <strong>En zona:</strong> ${rec.operativas} operables · ${rec.noOperativas} inoperables<br/>
+          <strong>Base / Taller:</strong> ${rec.standBy} stand by (en base) · ${rec.reparacion} reparación (en base/taller)<br/>
+          <strong>Total unidades:</strong> ${totalUnid}<br/>
           <strong>GPS:</strong> ${gpsText}<br/>
           <strong>Supervisor:</strong> ${rec.supervisor || '-'}<br/>
           <strong>Observaciones:</strong> ${rec.observaciones || '-'}
@@ -727,45 +769,62 @@
       `;
     }
 
-    function renderTypeSummary(filtered) {
-      const listEl = document.getElementById('typeSummaryList');
-      const totals = {
-        'contenedor 1.5 m3': { total: 0, op: 0, sb: 0, rep: 0, noOp: 0 },
-        'contenedor 10 m3': { total: 0, op: 0, sb: 0, rep: 0, noOp: 0 },
-        'caja autocompactadora': { total: 0, op: 0, sb: 0, rep: 0, noOp: 0 }
+    function renderSummaryMatrix(filtered) {
+      const tbody = document.getElementById('summaryBody');
+      const byType = {
+        'contenedor 1.5 m3': { op: 0, noOp: 0, sb: 0, rep: 0 },
+        'contenedor 10 m3': { op: 0, noOp: 0, sb: 0, rep: 0 },
+        'caja autocompactadora': { op: 0, noOp: 0, sb: 0, rep: 0 }
       };
 
       filtered.forEach(r => {
         const key = normalizeType(r.tipo);
-        if (!totals[key]) return;
-        const op = parseNum(r.operativas);
-        const sb = parseNum(r.standBy);
-        const rep = parseNum(r.reparacion);
-        const noOp = parseNum(r.noOperativas);
-        totals[key].op += op;
-        totals[key].sb += sb;
-        totals[key].rep += rep;
-        totals[key].noOp += noOp;
-        totals[key].total += (op + noOp);
+        if (!byType[key]) return;
+        byType[key].op += parseNum(r.operativas);
+        byType[key].noOp += parseNum(r.noOperativas);
+        byType[key].sb += parseNum(r.standBy);
+        byType[key].rep += parseNum(r.reparacion);
       });
 
-      listEl.innerHTML = ALLOWED_TYPES.map(t => {
-        const item = totals[t];
+      let grandOp = 0;
+      let grandNoOp = 0;
+      let grandSb = 0;
+      let grandRep = 0;
+      let grandTotal = 0;
+
+      const rowsHtml = ALLOWED_TYPES.map(typeName => {
+        const d = byType[typeName];
+        const rowTotal = d.op + d.noOp + d.sb + d.rep;
+        grandOp += d.op;
+        grandNoOp += d.noOp;
+        grandSb += d.sb;
+        grandRep += d.rep;
+        grandTotal += rowTotal;
+
         return `
-          <div class="type-chip">
-            <strong>${t}</strong>
-            <span>${item.total} total</span>
-            <span>·</span>
-            <span class="type-op">${item.op} op</span>
-            <span>·</span>
-            <span class="type-sb">${item.sb} stand by</span>
-            <span>·</span>
-            <span class="type-rep">${item.rep} reparac.</span>
-            <span>·</span>
-            <span class="type-noop">${item.noOp} inoperables</span>
-          </div>
+          <tr>
+            <td>${typeName}</td>
+            <td>${d.op}</td>
+            <td>${d.noOp}</td>
+            <td>${d.sb}</td>
+            <td>${d.rep}</td>
+            <td>${rowTotal}</td>
+          </tr>
         `;
       }).join('');
+
+      const totalRowHtml = `
+        <tr class="total-row">
+          <td>Total</td>
+          <td>${grandOp}</td>
+          <td>${grandNoOp}</td>
+          <td>${grandSb}</td>
+          <td>${grandRep}</td>
+          <td>${grandTotal}</td>
+        </tr>
+      `;
+
+      tbody.innerHTML = rowsHtml + totalRowHtml;
     }
 
     function getFilteredRecords() {
@@ -801,7 +860,7 @@
     function render() {
       updateFilterOptions();
       const filtered = getFilteredRecords();
-      renderTypeSummary(filtered);
+      renderSummaryMatrix(filtered);
 
       const totalPuntos = filtered.length;
       const conGps = filtered.filter(r => r.lat !== null && r.lng !== null).length;
@@ -809,14 +868,14 @@
       const sb = filtered.reduce((acc, r) => acc + parseNum(r.standBy), 0);
       const rep = filtered.reduce((acc, r) => acc + parseNum(r.reparacion), 0);
       const noOp = filtered.reduce((acc, r) => acc + parseNum(r.noOperativas), 0);
-      const totalUnid = op + noOp;
+      const totalUnid = op + noOp + sb + rep;
       const novedad = filtered.filter(r => parseNum(r.noOperativas) > 0).length;
       const conFoto = filtered.filter(r => Boolean(r.foto)).length;
 
       document.getElementById('kpiPuntos').textContent = totalPuntos;
       document.getElementById('kpiGps').textContent = `${conGps} con GPS`;
       document.getElementById('kpiUnidades').textContent = totalUnid;
-      document.getElementById('kpiOpNoOp').textContent = `${op} op. / ${noOp} no op.`;
+      document.getElementById('kpiOpNoOp').textContent = `${op} op. / ${noOp} inop.`;
       document.getElementById('kpiOperativas').textContent = op;
       document.getElementById('kpiStandBy').textContent = sb;
       document.getElementById('kpiReparacion').textContent = rep;
@@ -837,7 +896,7 @@
             fillOpacity: 0.9
           });
           const estCalc = calculateStatus(r);
-          marker.bindPopup(`<strong>${r.id}</strong><br/>${r.lugar}<br/>${r.tipo} (${estCalc})<br/>Op: ${r.operativas} | Stand by: ${r.standBy} | Rep: ${r.reparacion} | No op: ${r.noOperativas}`);
+          marker.bindPopup(`<strong>${r.id}</strong><br/>${r.lugar}<br/>${r.tipo} (${estCalc})<br/>Op: ${r.operativas} | Inop: ${r.noOperativas}<br/>Stand by: ${r.standBy} | Rep: ${r.reparacion}`);
           marker.on('click', () => renderDetail(r));
           marker.addTo(markersLayer);
           bounds.push([r.lat, r.lng]);
@@ -854,14 +913,16 @@
         const basePillClass = r.reparacion > 0 ? 'pill-warn' : 'pill-ok';
         const estCalc = calculateStatus(r);
         const estPillClass = getStatusPillClass(estCalc);
+        const totalRow = calculateTotalUnits(r);
         return `
           <tr>
             <td><strong>${r.id}</strong></td>
             <td>${r.lugar}</td>
             <td>${r.distrito}</td>
             <td>${r.tipo}</td>
-            <td><span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} no op</span></td>
+            <td><span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} inop</span></td>
             <td><span class="pill ${basePillClass}">${r.standBy} SB / ${r.reparacion} Rep</span></td>
+            <td><strong>${totalRow}</strong></td>
             <td>${hasGps ? '📍 Sí' : '—'}</td>
             <td><span class="pill ${estPillClass}">${estCalc}</span></td>
             <td>${r.foto ? '📷 Sí' : '—'}</td>
@@ -897,11 +958,11 @@
           noOperativas: preservedNoOp,
           standBy: preservedStandBy,
           reparacion: preservedRep,
-          cantidad: norm.operativas + preservedNoOp,
           lat: serverHasGps ? norm.lat : (prevHasGps ? prev.lat : null),
           lng: serverHasGps ? norm.lng : (prevHasGps ? prev.lng : null),
           foto: keepLocalPhoto ? prev.foto : norm.foto
         };
+        merged.cantidad = calculateTotalUnits(merged);
         merged.estado = calculateStatus(merged);
         mapById.set(norm.id, merged);
       });
@@ -938,7 +999,7 @@
               lng: (serverNorm.lat !== null && serverNorm.lng !== null) ? serverNorm.lng : localRec.lng,
               foto: serverNorm.foto || localRec.foto
             };
-            keepRec.cantidad = keepRec.operativas + keepRec.noOperativas;
+            keepRec.cantidad = calculateTotalUnits(keepRec);
             keepRec.estado = calculateStatus(keepRec);
             mapById.set(id, keepRec);
           } else {
@@ -1108,124 +1169,4 @@
         document.getElementById('fFoto').value = compressed.dataUrl;
         const origKb = Math.round(file.size / 1024);
         setPhotoMsg(`Optimizada: ${origKb} KB → ~${compressed.approxKb} KB (${compressed.width}x${compressed.height} px).`);
-      } catch (err) {
-        setPhotoMsg(err.message, true);
-      }
-    });
-
-    document.getElementById('pointForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const tipoFinal = normalizeType(document.getElementById('fTipo').value);
-
-      const op = Number(document.getElementById('fOperativas').value) || 0;
-      const noOp = Number(document.getElementById('fNoOperativas').value) || 0;
-      const standBy = Number(document.getElementById('fStandBy').value) || 0;
-      const reparacion = Number(document.getElementById('fReparacion').value) || 0;
-      const latRaw = document.getElementById('fLat').value.trim();
-      const lngRaw = document.getElementById('fLng').value.trim();
-
-      const updated = normalizeRecord({
-        id: document.getElementById('fId').value.trim(),
-        lugar: document.getElementById('fLugar').value.trim(),
-        distrito: document.getElementById('fDistrito').value.trim(),
-        cantidad: op + noOp,
-        operativas: op,
-        noOperativas: noOp,
-        standBy,
-        reparacion,
-        tipo: tipoFinal,
-        lat: latRaw === '' ? null : Number(latRaw),
-        lng: lngRaw === '' ? null : Number(lngRaw),
-        supervisor: document.getElementById('fSupervisor').value.trim(),
-        observaciones: document.getElementById('fObservaciones').value.trim(),
-        foto: document.getElementById('fFoto').value.trim(),
-        ultimaActualizacion: new Date().toLocaleString()
-      });
-
-      const idx = records.findIndex(r => r.id === updated.id);
-      if (idx >= 0) records[idx] = updated;
-      else records.push(updated);
-
-      pendingMap[updated.id] = {
-        record: updated,
-        expiresAt: Date.now() + 90000
-      };
-      savePending();
-      saveLocal();
-      render();
-      renderDetail(updated);
-      closeModal();
-
-      setStatus(`Guardado local de ${updated.id} (${updated.estado}). Enviando a Google Sheets...`);
-      try {
-        await postToSheets({ action: 'upsert', record: updated }, true);
-        setTimeout(syncFromSheets, 4500);
-      } catch (err) {
-        setStatus(`Guardado local; error en nube: ${err.message}`, true);
-      }
-    });
-
-    document.getElementById('btnNew').addEventListener('click', () => openEditModal(''));
-    document.getElementById('btnCancelModal').addEventListener('click', closeModal);
-    document.getElementById('btnSync').addEventListener('click', syncFromSheets);
-    document.getElementById('btnSeed').addEventListener('click', seedToSheets);
-
-    document.getElementById('btnCsv').addEventListener('click', () => {
-      const headers = ['ID','LUGAR','DISTRITO','CANTIDAD','OPERATIVOS','NO OPERATIVOS','STAND BY','REPARACION','TIPO','LAT','LNG','ESTADO','SUPERVISOR','OBSERVACIONES','FOTO','ULTIMA ACTUALIZACIÓN'];
-      const rows = records.map(r => [
-        r.id, r.lugar, r.distrito, r.cantidad, r.operativas, r.noOperativas,
-        r.standBy, r.reparacion, r.tipo, r.lat ?? '', r.lng ?? '', calculateStatus(r),
-        r.supervisor, r.observaciones, r.foto, r.ultimaActualizacion
-      ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
-      const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'contenedores_pirai.csv';
-      a.click();
-    });
-
-    document.getElementById('btnExportJson').addEventListener('click', () => {
-      const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'respaldo_contenedores_pirai.json';
-      a.click();
-    });
-
-    document.getElementById('btnImportJson').addEventListener('click', () => {
-      document.getElementById('fileJsonInput').click();
-    });
-
-    document.getElementById('fileJsonInput').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const arr = JSON.parse(reader.result);
-          if (!Array.isArray(arr)) throw new Error('El JSON debe ser una lista');
-          records = arr.map(normalizeRecord).filter(r => r.id || r.lugar);
-          saveLocal();
-          render();
-          setStatus(`Cargados ${records.length} registros desde archivo JSON.`);
-        } catch (err) {
-          setStatus(`Error al leer JSON: ${err.message}`, true);
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    ['searchInput', 'filterDistrito', 'filterTipo', 'filterUnidades', 'filterGps'].forEach(id => {
-      document.getElementById(id).addEventListener('input', render);
-      document.getElementById(id).addEventListener('change', render);
-    });
-
-    initMap();
-    pendingMap = loadPending();
-    records = mergeServerAndLocal([], loadLocal());
-    saveLocal();
-    render();
-    syncFromSheets();
-  </script>
-</body>
-</html>
+      } catch (err
