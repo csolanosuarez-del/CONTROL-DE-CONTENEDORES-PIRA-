@@ -21,1161 +21,695 @@
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
     body { margin: 0; background: var(--bg); color: var(--text); }
     header {
-      background: #0b1120; border-bottom: 1px solid var(--border);
-      padding: 14px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
+      background: #0b1120;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
     }
-    header h1 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .badge-live { background: rgba(16,185,129,.15); color: var(--primary); padding: 3px 8px; border-radius: 999px; font-size: 0.75rem; border: 1px solid rgba(16,185,129,.4); }
-    .sync-status { font-size: 0.78rem; color: var(--muted); }
-    .container { max-width: 1400px; margin: 0 auto; padding: 16px; }
-    
-    /* KPIs */
-    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 12px; margin-bottom: 16px; }
-    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-    .kpi span { font-size: 0.78rem; color: var(--muted); display: block; }
-    .kpi strong { font-size: 1.55rem; display: block; margin-top: 4px; }
-    .kpi small { font-size: 0.72rem; color: var(--primary); }
-
-    /* Toolbar */
-    .toolbar {
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 12px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center;
+    header h1 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+    .badge-live {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--primary);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(16, 185, 129, 0.4);
     }
-    input, select, textarea {
-      background: #0f172a; border: 1px solid var(--border); color: var(--text);
-      padding: 8px 10px; border-radius: 6px; font-size: 0.88rem;
+    .sync-status { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button, .btn-link {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
-    input:focus, select:focus, textarea:focus { outline: 1px solid var(--primary); }
-    .btn {
-      border: none; padding: 8px 13px; border-radius: 6px; font-weight: 600; cursor: pointer;
-      font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: .15s;
+    button:hover { border-color: var(--muted); }
+    button.primary { background: var(--primary); border-color: var(--primary); color: #06281e; font-weight: 600; }
+    button.primary:hover { background: var(--primary-hover); }
+    button.info { background: rgba(59, 130, 246, 0.18); border-color: rgba(59, 130, 246, 0.5); color: #93c5fd; }
+    .container { max-width: 1450px; margin: 0 auto; padding: 16px; }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
     }
-    .btn-primary { background: var(--primary); color: #052e16; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-info { background: var(--info); color: #fff; }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-outline:hover { background: #334155; }
-    .btn-warn { background: var(--warning); color: #1c1917; }
-
-    /* Layout Map + Table */
-    .grid-main { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    @media (min-width: 1024px) { .grid-main { grid-template-columns: 440px 1fr; } }
-    #map { height: 480px; border-radius: 10px; border: 1px solid var(--border); z-index: 1; }
-
-    .selected-card {
+    .kpi {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 12px;
-      margin-top: 10px;
+      padding: 14px;
     }
-    .selected-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-      margin-bottom: 8px;
+    .kpi .label { font-size: 0.78rem; color: var(--muted); }
+    .kpi .val { font-size: 1.6rem; font-weight: 700; margin: 4px 0; }
+    .kpi .sub { font-size: 0.75rem; color: var(--muted); }
+    .filters {
+      display: grid;
+      grid-template-columns: 2fr repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
     }
-    .selected-card-title { font-weight: 700; font-size: 0.95rem; }
-    .selected-card-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
-    .selected-card-units {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin: 8px 0;
-      font-size: 0.78rem;
+    @media (max-width: 900px) {
+      .filters { grid-template-columns: 1fr 1fr; }
     }
-    .unit-tag {
-      background: #0f172a;
-      border: 1px solid var(--border);
-      padding: 4px 8px;
-      border-radius: 6px;
+    @media (max-width: 560px) {
+      .filters { grid-template-columns: 1fr; }
     }
-    .unit-tag-ok { border-color: rgba(16,185,129,.45); color: #34d399; }
-    .unit-tag-bad { border-color: rgba(239,68,68,.5); color: #f87171; }
-    .selected-card-photo {
+    input, select, textarea {
       width: 100%;
-      max-height: 220px;
-      object-fit: contain;
-      background: #0b1120;
-      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
       border: 1px solid var(--border);
-      cursor: zoom-in;
-      display: block;
-      margin: 8px 0;
-    }
-    .selected-card-empty {
-      background: #0b1120;
-      border: 1px dashed var(--border);
       border-radius: 8px;
-      padding: 12px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.8rem;
-      margin: 8px 0;
+      padding: 9px 11px;
+      font-size: 0.88rem;
     }
-    .selected-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    
+    .main-grid {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    .left-col { display: flex; flex-direction: column; gap: 12px; }
+    #map {
+      width: 100%;
+      height: 360px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0b1120;
+    }
+    .legend { font-size: 0.76rem; color: var(--muted); line-height: 1.4; }
+    .detail-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .detail-box h3 { margin: 0 0 6px; font-size: 1rem; }
+    .detail-box img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-top: 8px;
+      border: 1px solid var(--border);
+    }
     .table-wrap {
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      overflow: auto; max-height: 790px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow-x: auto;
     }
-    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
-    th { background: #0b1120; position: sticky; top: 0; z-index: 2; color: var(--muted); font-weight: 600; }
-    tr:hover { background: rgba(255,255,255,.03); }
-
-    .pill { padding: 3px 8px; border-radius: 999px; font-size: 0.74rem; font-weight: 600; white-space: nowrap; }
-    .st-Operativo { background: rgba(16,185,129,.18); color: #34d399; }
-    .st-Dañado { background: rgba(245,158,11,.18); color: #fbbf24; }
-    .st-Desbordado { background: rgba(239,68,68,.18); color: #f87171; }
-    .st-Reubicar { background: rgba(59,130,246,.18); color: #60a5fa; }
-
-    .unit-sub { display: block; font-size: 0.72rem; margin-top: 2px; }
-    .unit-ok { color: #34d399; }
-    .unit-bad { color: #f87171; font-weight: 600; }
-
-    .thumb { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
-
-    .leaflet-popup-content {
-      margin: 10px 12px;
-      line-height: 1.4;
-      font-size: 0.85rem;
-      max-height: 68vh;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
     }
-    .popup-box { display: flex; flex-direction: column; gap: 6px; min-width: 190px; }
-    .popup-photo-wrap {
-      margin-top: 4px;
-      background: #0b1120;
-      border-radius: 6px;
-      padding: 4px;
-      border: 1px solid #cbd5e1;
-      text-align: center;
-    }
-    .popup-photo {
-      display: block;
-      width: 100%;
-      max-width: 240px;
-      max-height: 180px;
-      height: auto;
-      object-fit: contain;
-      margin: 0 auto;
-      border-radius: 4px;
-      cursor: zoom-in;
-    }
-    .popup-photo-hint { display: block; font-size: 0.7rem; color: #475569; margin-top: 3px; }
-    .popup-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
-    .popup-btn {
-      flex: 1;
-      padding: 6px 8px;
-      font-size: 0.78rem;
+    th { background: #162032; color: var(--muted); font-size: 0.76rem; text-transform: uppercase; }
+    tr:hover td { background: rgba(255, 255, 255, 0.03); }
+    .pill {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.74rem;
       font-weight: 600;
-      border-radius: 5px;
-      border: 1px solid #0f172a;
-      background: #0f172a;
-      color: #f8fafc;
-      cursor: pointer;
+      display: inline-block;
     }
-    .popup-btn-sec { background: #e2e8f0; color: #0f172a; border-color: #94a3b8; }
-    
+    .pill-ok { background: rgba(16, 185, 129, 0.16); color: #34d399; }
+    .pill-warn { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
+    .pill-bad { background: rgba(239, 68, 68, 0.16); color: #f87171; }
     .modal-backdrop {
-      position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none;
-      align-items: center; justify-content: center; padding: 16px; z-index: 9999;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 2000;
     }
+    .modal-backdrop.open { display: flex; }
     .modal {
-      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-      width: 100%; max-width: 540px; max-height: 92vh; overflow-y: auto; padding: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 18px;
     }
-    .modal h2 { margin-top: 0; font-size: 1.1rem; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-    .form-group label { font-size: 0.78rem; color: var(--muted); }
-    .full { grid-column: 1 / -1; }
-    .preview-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-top: 6px; background: #0b1120; cursor: zoom-in; }
-
-    .photo-viewer-backdrop {
-      position: fixed; inset: 0; background: rgba(0,0,0,.92); display: none;
-      flex-direction: column; align-items: center; justify-content: center;
-      padding: 16px; z-index: 10000;
-    }
-    .photo-viewer-img {
-      max-width: 96vw;
-      max-height: 80vh;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.6);
-    }
-    .photo-viewer-caption { color: #e2e8f0; font-size: 0.85rem; margin-top: 10px; text-align: center; }
+    .form-grid .full { grid-column: 1 / -1; }
+    label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   </style>
 </head>
 <body>
-
-<header>
-  <div>
-    <h1>🗑️ Control de Contenedores Piraí <span class="badge-live">EN LÍNEA</span></h1>
-    <div class="sync-status" id="sync-status">Listo para sincronizar con Google Sheets</div>
-  </div>
-  <div style="display:flex; gap:8px; flex-wrap:wrap;">
-    <button class="btn btn-outline" onclick="syncFromCloud(true)">🔄 Sincronizar</button>
-    <button class="btn btn-outline" onclick="seedCloudBase()">☁️ Subir Base a Nube</button>
-    <button class="btn btn-primary" onclick="openModal()">+ Nuevo Punto</button>
-    <button class="btn btn-info" onclick="exportCSV()">📥 Exportar Excel (CSV)</button>
-    <button class="btn btn-outline" onclick="exportBackup()">💾 Respaldo JSON</button>
-    <label class="btn btn-outline" style="cursor:pointer;">
-      📂 Cargar JSON <input type="file" accept=".json" onchange="importBackup(event)" hidden />
-    </label>
-  </div>
-</header>
-
-<div class="container">
-  <!-- KPIs -->
-  <div class="kpis">
-    <div class="kpi"><span>Total Puntos</span><strong id="kpi-puntos">0</strong><small id="kpi-gps">0 con GPS</small></div>
-    <div class="kpi"><span>Total Unidades</span><strong id="kpi-unidades">0</strong><small id="kpi-desglose-unid">0 op. / 0 no op.</small></div>
-    <div class="kpi"><span>Unidades Operativas</span><strong id="kpi-op" style="color:#34d399">0</strong><small>Listas para operar</small></div>
-    <div class="kpi"><span>Unidades No Operables</span><strong id="kpi-no-op" style="color:#f87171">0</strong><small id="kpi-nov-puntos">0 puntos con novedad</small></div>
-    <div class="kpi"><span>Con Foto de Campo</span><strong id="kpi-fotos" style="color:#60a5fa">0</strong><small>Evidencia visual</small></div>
-  </div>
-
-  <!-- Filtros -->
-  <div class="toolbar">
-    <input type="text" id="f-search" placeholder="🔍 Buscar lugar o ID..." oninput="render()" style="flex:1; min-width:180px;" />
-    <select id="f-distrito" onchange="render()">
-      <option value="">Todos los Distritos</option>
-      <option value="1">Distrito 1</option>
-      <option value="2">Distrito 2</option>
-      <option value="3">Distrito 3</option>
-      <option value="4">Distrito 4</option>
-      <option value="5">Distrito 5</option>
-      <option value="9">Distrito 9</option>
-      <option value="10">Distrito 10</option>
-      <option value="11">Distrito 11</option>
-    </select>
-    <select id="f-tipo" onchange="render()">
-      <option value="">Todos los Tipos</option>
-      <option value="Contenedor 1.5 m³">Contenedor 1.5 m³</option>
-      <option value="Contenedor 10 m³">Contenedor 10 m³</option>
-      <option value="Caja Autocompactadora">Caja Autocompactadora</option>
-    </select>
-    <select id="f-estado" onchange="render()">
-      <option value="">Todos los Estados</option>
-      <option value="Operativo">Operativo</option>
-      <option value="Dañado">Dañado</option>
-      <option value="Desbordado">Desbordado</option>
-      <option value="Reubicar">Reubicar / Faltante</option>
-    </select>
-    <select id="f-novedad" onchange="render()">
-      <option value="">Unidades: Todas</option>
-      <option value="CON_NO_OP">Con unidades no operables</option>
-      <option value="TODO_OP">100% operables</option>
-    </select>
-    <select id="f-gps" onchange="render()">
-      <option value="">GPS: Todos</option>
-      <option value="SI">Con GPS</option>
-      <option value="NO">Pendiente GPS</option>
-    </select>
-  </div>
-
-  <!-- Mapa y Tabla -->
-  <div class="grid-main">
+  <header>
     <div>
-      <div id="map"></div>
-      <p style="font-size:0.76rem; color:var(--muted); margin-top:6px;">
-        🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Toca o haz clic en un marcador para ver su foto y unidades aquí abajo.
-      </p>
+      <h1>🗑️ Control de Contenedores Piraí <span class="badge-live">EN LÍNEA</span></h1>
+      <div id="syncStatus" class="sync-status">Listo para sincronizar con Google Sheets</div>
+    </div>
+    <div class="toolbar">
+      <button id="btnSync" type="button">🔄 Sincronizar</button>
+      <button id="btnSeed" type="button">☁️ Subir Base a Nube</button>
+      <button id="btnNew" class="primary" type="button">+ Nuevo Punto</button>
+      <button id="btnCsv" class="info" type="button">📊 Exportar Excel (CSV)</button>
+      <button id="btnExportJson" type="button">💾 Respaldo JSON</button>
+      <button id="btnImportJson" type="button">📂 Cargar JSON</button>
+      <input id="fileJsonInput" type="file" accept=".json" style="display:none" />
+    </div>
+  </header>
 
-      <div class="selected-card" id="selectedCard">
-        <div class="selected-card-header">
-          <div>
-            <div class="selected-card-title" id="sel-title">Toca un contenedor en el mapa</div>
-            <div class="selected-card-meta" id="sel-meta">Aquí se mostrará la foto y el detalle de unidades del punto seleccionado.</div>
-          </div>
-          <span class="pill st-Operativo" id="sel-estado" style="display:none;">Operativo</span>
+  <div class="container">
+    <section class="kpis">
+      <div class="kpi">
+        <div class="label">Total Puntos</div>
+        <div id="kpiPuntos" class="val">0</div>
+        <div id="kpiGps" class="sub">0 con GPS</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Total Unidades</div>
+        <div id="kpiUnidades" class="val">0</div>
+        <div id="kpiOpNoOp" class="sub">0 op. / 0 no op.</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Unidades Operativas</div>
+        <div id="kpiOperativas" class="val" style="color:var(--primary)">0</div>
+        <div class="sub">Listas para operar</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Unidades No Operables</div>
+        <div id="kpiNoOperativas" class="val" style="color:var(--danger)">0</div>
+        <div class="sub" id="kpiNovedad">0 puntos con novedad</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Con Foto de Campo</div>
+        <div id="kpiFotos" class="val" style="color:var(--info)">0</div>
+        <div class="sub">Evidencia visual</div>
+      </div>
+    </section>
+
+    <section class="filters">
+      <input id="searchInput" type="search" placeholder="Buscar lugar o ID..." />
+      <select id="filterDistrito"><option value="">Todos los Distritos</option></select>
+      <select id="filterTipo"><option value="">Todos los Tipos</option></select>
+      <select id="filterEstado"><option value="">Todos los Estados</option></select>
+      <select id="filterUnidades">
+        <option value="">Unidades: Todas</option>
+        <option value="con_no_op">Con no operables</option>
+        <option value="todo_op">100% operativas</option>
+      </select>
+      <select id="filterGps">
+        <option value="">GPS: Todos</option>
+        <option value="con_gps">Con GPS</option>
+        <option value="sin_gps">Sin GPS</option>
+      </select>
+    </section>
+
+    <section class="main-grid">
+      <div class="left-col">
+        <div id="map"></div>
+        <div class="legend">
+          🟢 1.5 m³ | 🔵 10 m³ | 🟠 Autocompactadora. Toca o haz clic en un marcador para ver su foto y unidades aquí abajo.
         </div>
-        <div class="selected-card-units" id="sel-units" style="display:none;"></div>
-        <div id="sel-media"></div>
-        <div class="selected-card-actions" id="sel-actions" style="display:none;">
-          <button type="button" class="btn btn-info" id="sel-btn-zoom" onclick="verFotoSeleccionada()" style="display:none;">🔍 Ampliar Foto</button>
-          <button type="button" class="btn btn-primary" id="sel-btn-edit" onclick="editarSeleccionado()">✏️ Actualizar / Foto</button>
+        <div id="detailCard" class="detail-box">
+          <h3>Toca un contenedor en el mapa</h3>
+          <div class="sync-status">Aquí se mostrará la foto y el detalle de unidades del punto seleccionado.</div>
         </div>
       </div>
-    </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Lugar / Ubicación</th>
-            <th>Dist.</th>
-            <th>Tipo</th>
-            <th>Unidades</th>
-            <th>GPS</th>
-            <th>Estado</th>
-            <th>Foto</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Lugar / Ubicación</th>
+              <th>Dist.</th>
+              <th>Tipo</th>
+              <th>Unidades</th>
+              <th>GPS</th>
+              <th>Estado</th>
+              <th>Foto</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <h3 id="modalTitle" style="margin-top:0">Punto de Contenedores</h3>
+      <form id="pointForm">
+        <div class="form-grid">
+          <div>
+            <label>ID</label>
+            <input id="fId" required />
+          </div>
+          <div>
+            <label>Distrito</label>
+            <input id="fDistrito" type="number" />
+          </div>
+          <div class="full">
+            <label>Lugar / Ubicación</label>
+            <input id="fLugar" required />
+          </div>
+          <div>
+            <label>Tipo</label>
+            <input id="fTipo" placeholder="Ej: 1.5 m³, 10 m³, Autocompactadora" />
+          </div>
+          <div>
+            <label>Estado</label>
+            <input id="fEstado" placeholder="Ej: Operativo, Mantenimiento" />
+          </div>
+          <div>
+            <label>Operativas</label>
+            <input id="fOperativas" type="number" min="0" value="0" />
+          </div>
+          <div>
+            <label>No Operativas</label>
+            <input id="fNoOperativas" type="number" min="0" value="0" />
+          </div>
+          <div>
+            <label>Latitud (LAT)</label>
+            <input id="fLat" type="number" step="any" />
+          </div>
+          <div>
+            <label>Longitud (LNG)</label>
+            <input id="fLng" type="number" step="any" />
+          </div>
+          <div>
+            <label>Supervisor</label>
+            <input id="fSupervisor" />
+          </div>
+          <div>
+            <label>Foto (URL o archivo)</label>
+            <input id="fFoto" placeholder="https://..." />
+            <input id="fFotoFile" type="file" accept="image/*" style="margin-top:6px" />
+          </div>
+          <div class="full">
+            <label>Observaciones</label>
+            <textarea id="fObservaciones" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="btnCancelModal" type="button">Cancelar</button>
+          <button class="primary" type="submit">Guardar y Sincronizar</button>
+        </div>
+      </form>
     </div>
   </div>
-</div>
 
-<!-- Modal de Relevamiento en Campo -->
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal">
-    <h2 id="modalTitle">Actualizar Punto en Campo</h2>
-    <input type="hidden" id="m-id" />
-    <div class="form-grid">
-      <div class="form-group full">
-        <label>Nombre del Lugar / Referencia</label>
-        <input type="text" id="m-lugar" required />
-      </div>
-      <div class="form-group">
-        <label>Distrito</label>
-        <input type="number" id="m-distrito" min="1" max="15" />
-      </div>
-      <div class="form-group">
-        <label>Total Unidades en el Punto</label>
-        <input type="number" id="m-cantidad" min="0" value="1" oninput="sincronizarOperativasDesdeTotal()" />
-      </div>
-      <div class="form-group">
-        <label>Unidades Operativas</label>
-        <input type="number" id="m-operativas" min="0" value="1" oninput="sincronizarNoOperativasDesdeOperativas()" />
-      </div>
-      <div class="form-group">
-        <label>Unidades No Operables</label>
-        <input type="number" id="m-no-operativas" min="0" value="0" oninput="sincronizarOperativasDesdeNoOperativas()" />
-      </div>
-      <div class="form-group">
-        <label>Tipo de Contenedor</label>
-        <select id="m-tipo">
-          <option value="Contenedor 1.5 m³">Contenedor 1.5 m³</option>
-          <option value="Contenedor 10 m³">Contenedor 10 m³</option>
-          <option value="Caja Autocompactadora">Caja Autocompactadora</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Estado Físico</label>
-        <select id="m-estado">
-          <option value="Operativo">Operativo</option>
-          <option value="Dañado">Dañado (Tapa/Ruedas/Cuerpo)</option>
-          <option value="Desbordado">Desbordado / Punto Crítico</option>
-          <option value="Reubicar">Reubicar / Faltante</option>
-        </select>
-      </div>
-      <div class="form-group full">
-        <label>Geolocalización GPS (Latitud, Longitud)</label>
-        <div style="display:flex; gap:6px;">
-          <input type="text" id="m-lat" placeholder="Latitud (-17.78...)" style="flex:1;" />
-          <input type="text" id="m-lng" placeholder="Longitud (-63.18...)" style="flex:1;" />
-          <button type="button" class="btn btn-warn" onclick="capturarGPS()">📍 Capturar GPS</button>
-        </div>
-        <small id="gps-status" style="color:var(--muted); font-size:0.75rem;"></small>
-      </div>
-      <div class="form-group">
-        <label>Supervisor en Campo</label>
-        <input type="text" id="m-supervisor" placeholder="Nombre del supervisor" />
-      </div>
-      <div class="form-group">
-        <label>Fotografía del Contenedor</label>
-        <input type="file" id="m-foto-input" accept="image/*" capture="environment" onchange="procesarFoto(event)" />
-      </div>
-      <div class="form-group full" id="preview-box" style="display:none;">
-        <img id="m-preview" class="preview-img" onclick="verFotoActualModal()" title="Toca para ampliar" />
-        <div style="margin-top:6px; display:flex; justify-content:flex-end;">
-          <button type="button" class="btn btn-outline" style="padding:5px 10px; font-size:0.78rem; color:#f87171; border-color:rgba(239,68,68,.45);" onclick="quitarFotoActual()">🗑️ Quitar Foto</button>
-        </div>
-      </div>
-      <div class="form-group full">
-        <label>Observaciones de Campo</label>
-        <textarea id="m-obs" rows="2" placeholder="Ej: 3 operativos, 1 no operable por tapa rota o falta de rueda..."></textarea>
-      </div>
-    </div>
-    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveRecord()">💾 Guardar Registro</button>
-    </div>
-  </div>
-</div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbdlRNoUEwB9ncCWfZPtS1Co2Q3jWaX0KKdkOJ9KsJFtxCue5H4Urbg1aGFxDbDIrOZ/exec';
+    const STORAGE_KEY = 'pirai_contenedores_v1';
 
-<!-- Visor de Foto Ampliada -->
-<div class="photo-viewer-backdrop" id="photoViewerBackdrop" onclick="closePhotoViewer()">
-  <img id="photoViewerImg" class="photo-viewer-img" onclick="event.stopPropagation()" alt="Foto del contenedor" />
-  <div class="photo-viewer-caption" id="photoViewerCaption"></div>
-  <button type="button" class="btn btn-outline" style="margin-top:12px; background:#0f172a;" onclick="closePhotoViewer()">✕ Cerrar Foto</button>
-</div>
+    // Pega aquí tu arreglo INITIAL_DATA de 127 registros si deseas precargarlo directo en el HTML,
+    // o usa "Cargar JSON" / "Sincronizar" desde Google Sheets.
+    const INITIAL_DATA = [];
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbdlRNoUEwB9ncCWfZPtS1Co2Q3jWaX0KKdkOJ9KsJFtxCue5H4Urbg1aGFxDbDIrOZ/exec';
-const STORAGE_KEY = 'pirai_contenedores_v1';
-const INITIAL_DATA = [
-  {id:"CONT-001",lugar:"COMERCIAL CHIRIGUANO",cantidad:3,operativas:3,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-002",lugar:"PARQUES Y JARDINES",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-003",lugar:"CABAÑAS DEL PIRAI",cantidad:2,operativas:2,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-004",lugar:"AMBROSIO VILLARROEL (cementerio)",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-005",lugar:"MERCADO SAN LUIS",cantidad:2,operativas:2,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-006",lugar:"MERCADO 4 DE NOVIEMBRE",cantidad:6,operativas:6,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-007",lugar:"GASIP",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-008",lugar:"ZOOLOGICO MUNICIPAL",cantidad:3,operativas:3,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-009",lugar:"ACRICOLOR (Banzer 3er anillo)",cantidad:2,operativas:2,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-010",lugar:"SALON VELATORIO AV. BUSCH",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-011",lugar:"QUINTA MUNICIPAL",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-012",lugar:"MERCADO 12 DE OCTUBRE",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-013",lugar:"3er ANILLO EXTERNO BANZER",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-014",lugar:"RADIAL 23 EXTERNO",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-015",lugar:"AV. BUSCH",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-016",lugar:"MUTUALISTA 3ER ANILLO EXTERNO (CALDOS)",cantidad:5,operativas:5,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-017",lugar:"MUTUALISTA ROTONDA INTERNO",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-018",lugar:"MERCADO ROTONDA EXTERNO",cantidad:6,operativas:6,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-019",lugar:"MUTUALISTA 3ER ANILLO INTERNO (BANCOS)",cantidad:5,operativas:5,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-020",lugar:"MERCADO DAVID TRAPERO",cantidad:1,operativas:1,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-021",lugar:"HOSPITAL OBRERO",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-022",lugar:"TECNOLOGICO SANTA CRUZ",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-023",lugar:"SAGUAPAC AV. PARAGUA",cantidad:1,operativas:1,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-024",lugar:"MERCADO LAZARETO",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-025",lugar:"BIMODAL ROTONDA",cantidad:6,operativas:6,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-026",lugar:"BIMODAL FERRETERO PARQUEO",cantidad:3,operativas:3,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-027",lugar:"BIMODAL SURTIDOR",cantidad:6,operativas:6,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-028",lugar:"FERIA BARRIO LINDO DOBLE VIA",cantidad:4,operativas:4,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-029",lugar:"FERIA BARRIO LINDO 4TO ANILLO",cantidad:5,operativas:5,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-030",lugar:"PARQUE URBANO",cantidad:2,operativas:2,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-031",lugar:"3er ANILLO ALEMANA OF. DE LA GOBERNACION",cantidad:1,operativas:1,noOperativas:0,distrito:2,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-032",lugar:"BIMODAL MERCADO 20 DE MARZO",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-033",lugar:"ESTACION ARGENTINA",cantidad:3,operativas:3,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-034",lugar:"POLICIA CAÑADA EL CARMEN",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-035",lugar:"GOBERNACION",cantidad:4,operativas:4,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-036",lugar:"MERCADO EL TROMPILLO",cantidad:4,operativas:4,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-037",lugar:"CASA DEL IMPEDIDO",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-038",lugar:"CEMENTERIO EL PAJONAL",cantidad:2,operativas:2,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-039",lugar:"IGM",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-040",lugar:"ESCUELA DE AVIACION",cantidad:2,operativas:2,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-041",lugar:"COLEGIO MILITAR",cantidad:5,operativas:5,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-042",lugar:"LOS BOMBEROS",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-043",lugar:"HANGARES DEL TROMPILLO",cantidad:1,operativas:1,noOperativas:0,distrito:3,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-044",lugar:"MERCADO LA MORITA",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-045",lugar:"MERCADO RAMAFA",cantidad:4,operativas:4,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-046",lugar:"SAGUAPAC",cantidad:6,operativas:6,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-047",lugar:"FIDALGA 2DO ANILLO",cantidad:3,operativas:3,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-048",lugar:"PLAN REGULADOR",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-049",lugar:"MERCADO ALTO SAN PEDRO",cantidad:3,operativas:3,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-050",lugar:"MERCADO SANTA ROSA",cantidad:6,operativas:6,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-051",lugar:"MERCADO FATIMA",cantidad:2,operativas:2,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-052",lugar:"MERCADO ABASTO COQUEROS",cantidad:5,operativas:5,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-053",lugar:"MERCADO ABASTO ROTONDA 3ER ANILLO EXTERNO",cantidad:5,operativas:5,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-054",lugar:"TRANSITO 3ER ANILLO",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-055",lugar:"MADISA",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-056",lugar:"CAMBODROMO 4TO ANILLO",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-057",lugar:"CONDOMINIO ALCANTARA",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-058",lugar:"CONDOMINIO ALMERIA",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-059",lugar:"UNIVERSIDAD LOS VALLECITOS",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-060",lugar:"ACRICOLOR AV. BANZER",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-061",lugar:"CONDOMINIO VERSALLES",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-062",lugar:"CONDOMINIO VALLE NORTE",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-063",lugar:"CONDOMINIO LA COLINA",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-064",lugar:"CONDOMINIO CANARA",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-065",lugar:"SOCIEDAD ESPAÑOLA",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-066",lugar:"EMPRESA FINNIGCAT",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-067",lugar:"CONDOMINIO TERRAZAS",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-068",lugar:"TABLECENTRO",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-069",lugar:"COMNIDAD CIUDADANA",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-070",lugar:"CAMBODROMO 5TO ANILLO (lado coqueras)",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-071",lugar:"MERCADO LOS TUSEQUIS",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-072",lugar:"POLICIA DELTA COMANDO",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-073",lugar:"OFICINA DE SAGUAPAC",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-074",lugar:"AV. ALEMANA 8VO ANILLO",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-075",lugar:"DEPÓSITO DE GENDARMERÍA Y DECOMISO U.E. SAN JUAN",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-076",lugar:"CONDOMINIO ALACIO",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-077",lugar:"CEMENTERIO NORTE",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-078",lugar:"DEPOSITO DE LA ALCALDIA BARRIO SAN JUAN",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-079",lugar:"EL COE",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-080",lugar:"CASA DE JUSTICIA SANTA ISABEL",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-081",lugar:"MERCADO GUADALUPE",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-082",lugar:"ALUMBRADO PUBLICO",cantidad:3,operativas:3,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-083",lugar:"UNIDAD DE CONTROL SANITARIO",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-084",lugar:"PARQUE LOS MANGALES 5TO ANILLO",cantidad:2,operativas:2,noOperativas:0,distrito:5,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-085",lugar:"MERCADO MAX FERNANDEZ",cantidad:3,operativas:3,noOperativas:0,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-086",lugar:"MERCADO LAS AMERICAS",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-087",lugar:"MERCADO PARAISO",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-088",lugar:"CEMENTERIO LA COLORADA",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-089",lugar:"MERCADO ABASTO 3 (LADO CUCHILLA)",cantidad:2,operativas:2,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-090",lugar:"CENTRO AMBIENTAL",cantidad:2,operativas:2,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-091",lugar:"MERCADO MUNICIPAL LOS BOSQUES",cantidad:2,operativas:2,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-092",lugar:"4TO ANILLO DOBLE VIA LA GUARDIA",cantidad:1,operativas:1,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-093",lugar:"SHOOPING DEL AUTOMOVIL",cantidad:1,operativas:1,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-094",lugar:"5TO ANILLO LOS BOSQUES",cantidad:5,operativas:5,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-095",lugar:"RAMADA NUEVA MOSCU",cantidad:5,operativas:5,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-096",lugar:"5TO ANILLO LA CUCHILLA",cantidad:2,operativas:2,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-097",lugar:"CEMENTERIO LA CUCHILLA",cantidad:5,operativas:5,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-098",lugar:"MERCADO 25 DE MARZO",cantidad:4,operativas:4,noOperativas:0,distrito:10,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-099",lugar:"MERCADO FLORIDA",cantidad:5,operativas:5,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-100",lugar:"PALACIO DE JUSTICIA",cantidad:2,operativas:2,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-101",lugar:"CEMENTERIO GENERAL",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-102",lugar:"OMAR CHAVEZ",cantidad:5,operativas:5,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-103",lugar:"LA INTENDENCIA",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-104",lugar:"SUPER MERCADO FIDALGA LA BLACUT",cantidad:2,operativas:2,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-105",lugar:"REGIMIENTO DE LA POLICIA MILITAR",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-106",lugar:"OCTAVA DIVISION",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-107",lugar:"COL. LOGÍSTICO CANAL COTOCA",cantidad:2,operativas:2,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-108",lugar:"POLITÉCNICO DE LA GABRIEL",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-109",lugar:"MÓDULO DE LA GABRIEL 2DO ANILLO",cantidad:3,operativas:3,noOperativas:0,distrito:11,tipo:"Contenedor 1.5 m³",lat:null,lng:null,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-110",lugar:"Mercado Santa Cruz",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Caja Autocompactadora",lat:-17.8509014,lng:-63.1810076,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-111",lugar:"Mercado Primavera",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Caja Autocompactadora",lat:-17.822605,lng:-63.1633033,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-112",lugar:"Centro Comercial Ventura Mall",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7533608,lng:-63.199584,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-113",lugar:"Centro Comercial Las Brisas",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7486997,lng:-63.1773481,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-114",lugar:"Mercado Abasto Mayorista",cantidad:1,operativas:1,noOperativas:0,distrito:10,tipo:"Caja Autocompactadora",lat:-17.8481742,lng:-63.2307776,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-115",lugar:"Centro Comercial IC Norte",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7725867,lng:-63.2042512,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-116",lugar:"Universidad UAGRM",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Caja Autocompactadora",lat:-17.7732132,lng:-63.1958052,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-117",lugar:"Mercado Belén",cantidad:1,operativas:1,noOperativas:0,distrito:1,tipo:"Contenedor 10 m³",lat:-17.7552643,lng:-63.1885497,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-118",lugar:"Mercado Nuevo Los Pozos",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 10 m³",lat:-17.725844,lng:-63.1483965,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-119",lugar:"Mercado Los Pozos Minorista",cantidad:2,operativas:2,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7779479,lng:-63.1828124,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-120",lugar:"Condominio Fontana",cantidad:1,operativas:1,noOperativas:0,distrito:5,tipo:"Contenedor 10 m³",lat:-17.6876721,lng:-63.13966,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-121",lugar:"Mercado la Ramada Calle Amboró",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7947895,lng:-63.1902934,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-122",lugar:"Mercado La Ramada Calle Sutó",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7945519,lng:-63.1919784,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-123",lugar:"Mercado La Ramada Calle Muchirí",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7934313,lng:-63.1922552,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-124",lugar:"Mercado Los Bosques",cantidad:1,operativas:1,noOperativas:0,distrito:10,tipo:"Contenedor 10 m³",lat:-17.8119657,lng:-63.2159882,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-125",lugar:"Mercado Abasto Minorista",cantidad:1,operativas:1,noOperativas:0,distrito:4,tipo:"Contenedor 10 m³",lat:-17.797699,lng:-63.204712,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-126",lugar:"Feria de La Computadora",cantidad:1,operativas:1,noOperativas:0,distrito:11,tipo:"Contenedor 10 m³",lat:-17.7880875,lng:-63.1682031,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"},
-  {id:"CONT-127",lugar:"Mercado Paraíso",cantidad:1,operativas:1,noOperativas:0,distrito:9,tipo:"Contenedor 10 m³",lat:-17.8551121,lng:-63.1983607,estado:"Operativo",supervisor:"",observaciones:"",foto:"",ultimaActualizacion:"Base 2023"}
-];
+    let records = [];
+    let map, markersLayer;
 
-function getDesgloseUnidades(r) {
-  const total = Math.max(0, Number(r.cantidad || 0));
-  const tieneOp = r.operativas !== undefined && r.operativas !== null && r.operativas !== '';
-  const tieneNoOp = r.noOperativas !== undefined && r.noOperativas !== null && r.noOperativas !== '';
-
-  let noOp = tieneNoOp ? Math.max(0, Number(r.noOperativas || 0)) : 0;
-  let op = tieneOp ? Math.max(0, Number(r.operativas || 0)) : Math.max(0, total - noOp);
-
-  if (!tieneOp && !tieneNoOp) {
-    if (r.estado === 'Operativo') {
-      op = total;
-      noOp = 0;
-    } else {
-      op = 0;
-      noOp = total;
+    function setStatus(msg, isError = false) {
+      const el = document.getElementById('syncStatus');
+      el.textContent = msg;
+      el.style.color = isError ? '#f87171' : '#94a3b8';
     }
-  } else if (tieneOp && !tieneNoOp) {
-    op = Math.min(total, op);
-    noOp = Math.max(0, total - op);
-  } else if (!tieneOp && tieneNoOp) {
-    noOp = Math.min(total, noOp);
-    op = Math.max(0, total - noOp);
-  } else {
-    if (op + noOp !== total) {
-      noOp = Math.min(total, noOp);
-      op = Math.max(0, total - noOp);
+
+    function normalizeRecord(raw) {
+      const op = Number(raw.operativas ?? 0) || 0;
+      const noOp = Number(raw.noOperativas ?? 0) || 0;
+      const cant = raw.cantidad !== '' && raw.cantidad !== undefined ? Number(raw.cantidad) : (op + noOp);
+      const lat = (raw.lat === '' || raw.lat === null || raw.lat === undefined || Number.isNaN(Number(raw.lat))) ? null : Number(raw.lat);
+      const lng = (raw.lng === '' || raw.lng === null || raw.lng === undefined || Number.isNaN(Number(raw.lng))) ? null : Number(raw.lng);
+      return {
+        id: String(raw.id ?? '').trim(),
+        lugar: String(raw.lugar ?? '').trim(),
+        distrito: raw.distrito === '' || raw.distrito === undefined ? '' : Number(raw.distrito),
+        cantidad: cant,
+        operativas: op,
+        noOperativas: noOp,
+        tipo: String(raw.tipo ?? '').trim(),
+        lat,
+        lng,
+        estado: String(raw.estado ?? '').trim(),
+        supervisor: String(raw.supervisor ?? '').trim(),
+        observaciones: String(raw.observaciones ?? '').trim(),
+        foto: String(raw.foto ?? '').trim(),
+        ultimaActualizacion: String(raw.ultimaActualizacion ?? '').trim()
+      };
     }
-  }
 
-  return { total, op, noOp };
-}
+    function saveLocal() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
 
-let records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || INITIAL_DATA;
-let currentPhotoBase64 = '';
-let selectedId = null;
+    function loadLocal() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map(normalizeRecord);
+          }
+        }
+      } catch (e) {}
+      return INITIAL_DATA.map(normalizeRecord);
+    }
 
-function setSyncStatus(msg, isError = false) {
-  const el = document.getElementById('sync-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = isError ? '#f87171' : '#34d399';
-}
+    function initMap() {
+      map = L.map('map').setView([-17.7833, -63.1821], 12);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 19
+      }).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+    }
 
-function guardarLocalSeguro() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-  } catch (err) {
-    // Evita fallos si se supera el límite del navegador
-  }
-}
+    function getMarkerColor(tipo) {
+      const t = String(tipo || '').toLowerCase();
+      if (t.includes('compact') || t.includes('autocomp')) return '#f97316';
+      if (t.includes('10')) return '#3b82f6';
+      return '#10b981';
+    }
 
-async function syncFromCloud(showAlert = false) {
-  if (!API_URL || API_URL.includes('PON_AQUI')) return;
-  setSyncStatus('🔄 Sincronizando con Google Sheets...');
-  try {
-    const res = await fetch(API_URL, { method: 'GET', cache: 'no-store' });
-    const data = await res.json();
-    if (data && data.ok && Array.isArray(data.records)) {
-      if (data.records.length > 0) {
-        records = data.records;
-        guardarLocalSeguro();
-        render();
-        setSyncStatus(`✅ Sincronizado (${records.length} puntos) • ${new Date().toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}`);
-      } else {
-        setSyncStatus('⚠️ Hoja vacía: usa "☁️ Subir Base a Nube" para cargar los 127 puntos.');
+    function renderDetail(rec) {
+      const box = document.getElementById('detailCard');
+      if (!rec) {
+        box.innerHTML = '<h3>Toca un contenedor en el mapa</h3><div class="sync-status">Aquí se mostrará la foto y el detalle de unidades del punto seleccionado.</div>';
+        return;
       }
-      if (showAlert) alert('Sincronización completada.');
-    } else {
-      throw new Error(data.error || 'Respuesta inválida');
-    }
-  } catch (err) {
-    setSyncStatus('⚠️ Sin conexión con nube (mostrando copia local)', true);
-    if (showAlert) alert('No se pudo sincronizar con Google Sheets: ' + err.message);
-  }
-}
-
-async function pushRecordToCloud(rec) {
-  if (!API_URL || API_URL.includes('PON_AQUI')) return;
-  setSyncStatus('☁️ Guardando en Google Sheets y Drive...');
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'upsert', record: rec })
-    });
-    const data = await res.json();
-    if (data && data.ok && data.record) {
-      const idx = records.findIndex(x => x.id === data.record.id);
-      if (idx !== -1) {
-        records[idx] = { ...records[idx], ...data.record };
-      }
-      guardarLocalSeguro();
-      render();
-      setSyncStatus(`✅ Guardado en nube • ${new Date().toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}`);
-    } else {
-      throw new Error(data.error || 'Error al guardar en nube');
-    }
-  } catch (err) {
-    setSyncStatus('⚠️ Guardado local; pendiente subir a nube', true);
-  }
-}
-
-async function seedCloudBase() {
-  if (!API_URL || API_URL.includes('PON_AQUI')) return;
-  if (!confirm(`¿Subir los ${records.length} puntos actuales a Google Sheets? Esto reemplazará las filas actuales de la hoja.`)) return;
-  setSyncStatus('☁️ Subiendo base completa a Google Sheets...');
-  try {
-    const cleanList = records.map(r => ({
-      ...r,
-      foto: (r.foto && String(r.foto).startsWith('http')) ? r.foto : ''
-    }));
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'seed', records: cleanList })
-    });
-    const data = await res.json();
-    if (data && data.ok) {
-      setSyncStatus(`✅ Base subida (${data.count} puntos) en Google Sheets`);
-      alert(`✅ Se subieron ${data.count} puntos a Google Sheets.`);
-    } else {
-      throw new Error(data.error || 'Error al subir base');
-    }
-  } catch (err) {
-    setSyncStatus('⚠️ Error al subir base a nube', true);
-    alert('Error al subir base: ' + err.message);
-  }
-}
-
-const map = L.map('map').setView([-17.7833, -63.1821], 12);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OpenStreetMap &copy; CARTO',
-  maxZoom: 19
-}).addTo(map);
-let markersLayer = L.layerGroup().addTo(map);
-
-function getMarkerColor(tipo) {
-  if (tipo.includes('Autocompactadora')) return '#f59e0b';
-  if (tipo.includes('10 m³')) return '#3b82f6';
-  return '#10b981';
-}
-
-function normalizarFotoSrc(foto) {
-  if (!foto || typeof foto !== 'string') return '';
-  const limpia = foto.trim();
-  if (!limpia) return '';
-  if (limpia.startsWith('data:image/') || limpia.startsWith('http://') || limpia.startsWith('https://') || limpia.startsWith('/')) {
-    return limpia;
-  }
-  return `data:image/jpeg;base64,${limpia}`;
-}
-
-function escapeAttr(str) {
-  return String(str || '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-function openPhotoViewer(src, caption = '') {
-  const normalized = normalizarFotoSrc(src);
-  if (!normalized) return;
-  document.getElementById('photoViewerImg').src = normalized;
-  document.getElementById('photoViewerCaption').textContent = caption;
-  document.getElementById('photoViewerBackdrop').style.display = 'flex';
-}
-
-function closePhotoViewer() {
-  document.getElementById('photoViewerBackdrop').style.display = 'none';
-  document.getElementById('photoViewerImg').src = '';
-}
-
-function verFotoPorId(id) {
-  const r = records.find(x => x.id === id);
-  if (!r || !r.foto) return;
-  openPhotoViewer(r.foto, `${r.id} - ${r.lugar} (Distrito ${r.distrito})`);
-}
-
-function verFotoActualModal() {
-  const id = document.getElementById('m-id').value;
-  const lugar = document.getElementById('m-lugar').value.trim();
-  if (!currentPhotoBase64) return;
-  openPhotoViewer(currentPhotoBase64, `${id || 'Nuevo'} - ${lugar}`);
-}
-
-function quitarFotoActual() {
-  currentPhotoBase64 = '';
-  const inputEl = document.getElementById('m-foto-input');
-  if (inputEl) inputEl.value = '';
-  const imgEl = document.getElementById('m-preview');
-  if (imgEl) imgEl.src = '';
-  document.getElementById('preview-box').style.display = 'none';
-}
-
-function seleccionarPunto(id) {
-  selectedId = id;
-  const r = records.find(x => x.id === id);
-  const titleEl = document.getElementById('sel-title');
-  const metaEl = document.getElementById('sel-meta');
-  const estadoEl = document.getElementById('sel-estado');
-  const unitsEl = document.getElementById('sel-units');
-  const mediaEl = document.getElementById('sel-media');
-  const actionsEl = document.getElementById('sel-actions');
-  const btnZoom = document.getElementById('sel-btn-zoom');
-
-  if (!r) {
-    titleEl.textContent = 'Toca un contenedor en el mapa';
-    metaEl.textContent = 'Aquí se mostrará la foto y el detalle de unidades del punto seleccionado.';
-    estadoEl.style.display = 'none';
-    unitsEl.style.display = 'none';
-    mediaEl.innerHTML = '';
-    actionsEl.style.display = 'none';
-    return;
-  }
-
-  const u = getDesgloseUnidades(r);
-  const fotoSrc = normalizarFotoSrc(r.foto);
-  titleEl.textContent = `${r.id} - ${r.lugar}`;
-  metaEl.textContent = `Distrito ${r.distrito} • ${r.tipo}${r.observaciones ? ' • ' + r.observaciones : ''}`;
-  estadoEl.textContent = r.estado;
-  estadoEl.className = `pill st-${r.estado}`;
-  estadoEl.style.display = 'inline-block';
-
-  unitsEl.style.display = 'flex';
-  unitsEl.innerHTML = `
-    <span class="unit-tag">Total: <strong>${u.total}</strong></span>
-    <span class="unit-tag unit-tag-ok">Operativas: <strong>${u.op}</strong></span>
-    <span class="unit-tag unit-tag-bad">No operables: <strong>${u.noOp}</strong></span>
-  `;
-
-  if (fotoSrc) {
-    mediaEl.innerHTML = `<img src="${escapeAttr(fotoSrc)}" class="selected-card-photo" alt="Foto ${escapeAttr(r.id)}" onclick="verFotoSeleccionada()" title="Toca para ampliar" />`;
-    btnZoom.style.display = 'inline-flex';
-  } else {
-    mediaEl.innerHTML = `<div class="selected-card-empty">Este punto aún no tiene foto registrada. Toca "Actualizar / Foto" para tomar o cargar una.</div>`;
-    btnZoom.style.display = 'none';
-  }
-  actionsEl.style.display = 'flex';
-}
-
-function verFotoSeleccionada() {
-  if (!selectedId) return;
-  verFotoPorId(selectedId);
-}
-
-function editarSeleccionado() {
-  if (!selectedId) return;
-  openModal(selectedId);
-}
-
-function sincronizarOperativasDesdeTotal() {
-  const total = Math.max(0, Number(document.getElementById('m-cantidad').value || 0));
-  let noOp = Math.max(0, Number(document.getElementById('m-no-operativas').value || 0));
-  if (noOp > total) {
-    noOp = total;
-    document.getElementById('m-no-operativas').value = noOp;
-  }
-  document.getElementById('m-operativas').value = Math.max(0, total - noOp);
-}
-
-function sincronizarNoOperativasDesdeOperativas() {
-  let op = Math.max(0, Number(document.getElementById('m-operativas').value || 0));
-  const noOp = Math.max(0, Number(document.getElementById('m-no-operativas').value || 0));
-  const totalActual = Math.max(0, Number(document.getElementById('m-cantidad').value || 0));
-  const nuevoTotal = Math.max(totalActual, op + noOp);
-  if (op > nuevoTotal) {
-    op = nuevoTotal;
-    document.getElementById('m-operativas').value = op;
-  }
-  document.getElementById('m-cantidad').value = nuevoTotal;
-  document.getElementById('m-no-operativas').value = Math.max(0, nuevoTotal - op);
-}
-
-function sincronizarOperativasDesdeNoOperativas() {
-  let noOp = Math.max(0, Number(document.getElementById('m-no-operativas').value || 0));
-  const opActual = Math.max(0, Number(document.getElementById('m-operativas').value || 0));
-  const totalActual = Math.max(0, Number(document.getElementById('m-cantidad').value || 0));
-  const nuevoTotal = Math.max(totalActual, opActual + noOp);
-  if (noOp > nuevoTotal) {
-    noOp = nuevoTotal;
-    document.getElementById('m-no-operativas').value = noOp;
-  }
-  document.getElementById('m-cantidad').value = nuevoTotal;
-  document.getElementById('m-operativas').value = Math.max(0, nuevoTotal - noOp);
-}
-
-function render() {
-  const q = document.getElementById('f-search').value.toLowerCase();
-  const dist = document.getElementById('f-distrito').value;
-  const tipo = document.getElementById('f-tipo').value;
-  const est = document.getElementById('f-estado').value;
-  const nov = document.getElementById('f-novedad').value;
-  const gps = document.getElementById('f-gps').value;
-
-  const filtered = records.filter(r => {
-    const u = getDesgloseUnidades(r);
-    const matchQ = String(r.lugar || '').toLowerCase().includes(q) || String(r.id || '').toLowerCase().includes(q);
-    const matchD = !dist || String(r.distrito) === dist;
-    const matchT = !tipo || r.tipo === tipo;
-    const matchE = !est || r.estado === est;
-    const matchN = !nov || (nov === 'CON_NO_OP' ? u.noOp > 0 : u.noOp === 0);
-    const hasGps = r.lat !== null && r.lng !== null && r.lat !== '';
-    const matchG = !gps || (gps === 'SI' ? hasGps : !hasGps);
-    return matchQ && matchD && matchT && matchE && matchN && matchG;
-  });
-
-  let totalUnidades = 0;
-  let totalOperativas = 0;
-  let totalNoOperativas = 0;
-  let puntosConNoOp = 0;
-
-  records.forEach(r => {
-    const u = getDesgloseUnidades(r);
-    totalUnidades += u.total;
-    totalOperativas += u.op;
-    totalNoOperativas += u.noOp;
-    if (u.noOp > 0) puntosConNoOp++;
-  });
-
-  const conGps = records.filter(r => r.lat && r.lng).length;
-  const conFoto = records.filter(r => normalizarFotoSrc(r.foto)).length;
-
-  document.getElementById('kpi-puntos').textContent = records.length;
-  document.getElementById('kpi-gps').textContent = `${conGps} con GPS (${Math.round(conGps/(records.length||1)*100)}%)`;
-  document.getElementById('kpi-unidades').textContent = totalUnidades;
-  document.getElementById('kpi-desglose-unid').textContent = `${totalOperativas} op. / ${totalNoOperativas} no op.`;
-  document.getElementById('kpi-op').textContent = totalOperativas;
-  document.getElementById('kpi-no-op').textContent = totalNoOperativas;
-  document.getElementById('kpi-nov-puntos').textContent = `${puntosConNoOp} puntos con novedad`;
-  document.getElementById('kpi-fotos').textContent = conFoto;
-
-  const tbody = document.getElementById('tbody');
-  tbody.innerHTML = '';
-  markersLayer.clearLayers();
-
-  const isMobile = window.innerWidth < 640;
-  const popupMaxWidth = isMobile ? Math.max(220, window.innerWidth - 70) : 340;
-
-  filtered.forEach(r => {
-    const u = getDesgloseUnidades(r);
-    const hasGps = r.lat !== null && r.lng !== null && r.lat !== '' && r.lng !== '' && !isNaN(Number(r.lat)) && !isNaN(Number(r.lng));
-    const mapsLink = hasGps ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : null;
-    const fotoSrc = normalizarFotoSrc(r.foto);
-    const safeLugar = escapeAttr(r.lugar);
-    const safeId = escapeAttr(r.id);
-
-    if (hasGps) {
-      const marker = L.circleMarker([Number(r.lat), Number(r.lng)], {
-        radius: isMobile ? 12 : 8,
-        fillColor: getMarkerColor(String(r.tipo || '')),
-        color: u.noOp > 0 ? '#ef4444' : '#fff',
-        weight: u.noOp > 0 ? 3 : 2,
-        fillOpacity: 0.95
-      });
-
-      marker.on('click', () => {
-        seleccionarPunto(r.id);
-      });
-
-      const fotoHtml = fotoSrc
-        ? `<div class="popup-photo-wrap">
-             <img src="${escapeAttr(fotoSrc)}" class="popup-photo" alt="Foto ${safeId}" onclick="verFotoPorId('${safeId}')" />
-             <span class="popup-photo-hint">Toca la foto para ampliar</span>
-           </div>`
-        : `<small style="color:#64748b;">Sin foto registrada</small>`;
-
-      const popupHtml = `
-        <div class="popup-box">
-          <div>
-            <strong>${safeId} - ${safeLugar}</strong><br/>
-            <span>Tipo: ${escapeAttr(r.tipo)}</span><br/>
-            <span>Total: <b>${u.total}</b> | Op: <b style="color:#059669;">${u.op}</b> | No op: <b style="color:#dc2626;">${u.noOp}</b></span><br/>
-            <span>Distrito: ${escapeAttr(r.distrito)} | Estado: <b>${escapeAttr(r.estado)}</b></span>
-            ${r.observaciones ? `<br/><small style="color:#334155;">Obs: ${escapeAttr(r.observaciones)}</small>` : ''}
-          </div>
-          ${fotoHtml}
-          <div class="popup-actions">
-            <button type="button" class="popup-btn" onclick="openModal('${safeId}')">✏️ Campo</button>
-            ${fotoSrc ? `<button type="button" class="popup-btn popup-btn-sec" onclick="verFotoPorId('${safeId}')">🔍 Ver Foto</button>` : ''}
-          </div>
+      const imgHtml = rec.foto ? `<img src="${rec.foto}" alt="${rec.lugar}" onerror="this.style.display='none'" />` : '';
+      box.innerHTML = `
+        <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
+        <div class="sync-status">Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo || '-'} | Estado: ${rec.estado || '-'}</div>
+        <div style="margin-top:8px; font-size:0.86rem;">
+          <strong>Unidades:</strong> ${rec.operativas} operativas / ${rec.noOperativas} no operables (Total: ${rec.cantidad})<br/>
+          <strong>Supervisor:</strong> ${rec.supervisor || '-'}<br/>
+          <strong>Observaciones:</strong> ${rec.observaciones || '-'}
         </div>
+        ${imgHtml}
       `;
+    }
 
-      marker.bindPopup(popupHtml, {
-        maxWidth: popupMaxWidth,
-        autoPan: true,
-        keepInView: true
+    function getFilteredRecords() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const dist = document.getElementById('filterDistrito').value;
+      const tipo = document.getElementById('filterTipo').value;
+      const est = document.getElementById('filterEstado').value;
+      const unid = document.getElementById('filterUnidades').value;
+      const gps = document.getElementById('filterGps').value;
+
+      return records.filter(r => {
+        if (q && !r.id.toLowerCase().includes(q) && !r.lugar.toLowerCase().includes(q)) return false;
+        if (dist && String(r.distrito) !== dist) return false;
+        if (tipo && r.tipo !== tipo) return false;
+        if (est && r.estado !== est) return false;
+        if (unid === 'con_no_op' && r.noOperativas <= 0) return false;
+        if (unid === 'todo_op' && r.noOperativas > 0) return false;
+        const hasGps = r.lat !== null && r.lng !== null;
+        if (gps === 'con_gps' && !hasGps) return false;
+        if (gps === 'sin_gps' && hasGps) return false;
+        return true;
       });
-      marker.addTo(markersLayer);
     }
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><strong>${safeId}</strong></td>
-      <td>
-        <div>${safeLugar}</div>
-        <small style="color:var(--muted)">${escapeAttr(r.ultimaActualizacion || '')}${r.supervisor ? ' • Sup: '+escapeAttr(r.supervisor) : ''}</small>
-      </td>
-      <td>D-${escapeAttr(r.distrito)}</td>
-      <td>${escapeAttr(String(r.tipo || '').replace('Contenedor ', ''))}</td>
-      <td>
-        <strong>${u.total}</strong>
-        <span class="unit-sub unit-ok">${u.op} op.</span>
-        ${u.noOp > 0 ? `<span class="unit-sub unit-bad">${u.noOp} no op.</span>` : ''}
-      </td>
-      <td>${hasGps ? `<a href="${mapsLink}" target="_blank" style="color:#60a5fa;text-decoration:none;">📍 Ver</a>` : `<span style="color:#f87171;">Sin GPS</span>`}</td>
-      <td><span class="pill st-${escapeAttr(r.estado)}">${escapeAttr(r.estado)}</span></td>
-      <td>${fotoSrc ? `<img src="${escapeAttr(fotoSrc)}" class="thumb" onclick="verFotoPorId('${safeId}')" title="Ver foto" />` : '-'}</td>
-      <td><button class="btn btn-outline" style="padding:4px 8px;font-size:0.78rem;" onclick="openModal('${safeId}')">✏️ Campo</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
+    function updateFilterOptions() {
+      const distSel = document.getElementById('filterDistrito');
+      const tipoSel = document.getElementById('filterTipo');
+      const estSel = document.getElementById('filterEstado');
 
-  if (selectedId) {
-    seleccionarPunto(selectedId);
-  }
-}
+      const curDist = distSel.value;
+      const curTipo = tipoSel.value;
+      const curEst = estSel.value;
 
-window.addEventListener('resize', () => {
-  render();
-  map.invalidateSize();
-});
+      const dists = [...new Set(records.map(r => r.distrito).filter(v => v !== ''))].sort((a, b) => a - b);
+      const tipos = [...new Set(records.map(r => r.tipo).filter(Boolean))].sort();
+      const ests = [...new Set(records.map(r => r.estado).filter(Boolean))].sort();
 
-function openModal(id = null) {
-  const modal = document.getElementById('modalBackdrop');
-  document.getElementById('gps-status').textContent = '';
-  document.getElementById('m-foto-input').value = '';
-  
-  if (id) {
-    const r = records.find(x => x.id === id);
-    const u = getDesgloseUnidades(r);
-    document.getElementById('modalTitle').textContent = `Relevamiento: ${r.id}`;
-    document.getElementById('m-id').value = r.id;
-    document.getElementById('m-lugar').value = r.lugar;
-    document.getElementById('m-distrito').value = r.distrito;
-    document.getElementById('m-cantidad').value = u.total;
-    document.getElementById('m-operativas').value = u.op;
-    document.getElementById('m-no-operativas').value = u.noOp;
-    document.getElementById('m-tipo').value = r.tipo;
-    document.getElementById('m-estado').value = r.estado;
-    document.getElementById('m-lat').value = r.lat || '';
-    document.getElementById('m-lng').value = r.lng || '';
-    document.getElementById('m-supervisor').value = r.supervisor || '';
-    document.getElementById('m-obs').value = r.observaciones || '';
-    currentPhotoBase64 = normalizarFotoSrc(r.foto || '');
-  } else {
-    document.getElementById('modalTitle').textContent = 'Registrar Nuevo Punto de Contenedor';
-    document.getElementById('m-id').value = '';
-    document.getElementById('m-lugar').value = '';
-    document.getElementById('m-distrito').value = 1;
-    document.getElementById('m-cantidad').value = 1;
-    document.getElementById('m-operativas').value = 1;
-    document.getElementById('m-no-operativas').value = 0;
-    document.getElementById('m-tipo').value = 'Contenedor 1.5 m³';
-    document.getElementById('m-estado').value = 'Operativo';
-    document.getElementById('m-lat').value = '';
-    document.getElementById('m-lng').value = '';
-    document.getElementById('m-supervisor').value = '';
-    document.getElementById('m-obs').value = '';
-    currentPhotoBase64 = '';
-  }
+      distSel.innerHTML = '<option value="">Todos los Distritos</option>' + dists.map(d => `<option value="${d}">${d}</option>`).join('');
+      tipoSel.innerHTML = '<option value="">Todos los Tipos</option>' + tipos.map(t => `<option value="${t}">${t}</option>`).join('');
+      estSel.innerHTML = '<option value="">Todos los Estados</option>' + ests.map(e => `<option value="${e}">${e}</option>`).join('');
 
-  if (currentPhotoBase64) {
-    document.getElementById('preview-box').style.display = 'block';
-    document.getElementById('m-preview').src = currentPhotoBase64;
-  } else {
-    document.getElementById('preview-box').style.display = 'none';
-  }
-  modal.style.display = 'flex';
-}
-
-function closeModal() {
-  document.getElementById('modalBackdrop').style.display = 'none';
-}
-
-function capturarGPS() {
-  const st = document.getElementById('gps-status');
-  if (!navigator.geolocation) {
-    st.textContent = 'Tu navegador no soporta GPS.';
-    return;
-  }
-  st.textContent = 'Obteniendo señal satelital...';
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      document.getElementById('m-lat').value = pos.coords.latitude.toFixed(7);
-      document.getElementById('m-lng').value = pos.coords.longitude.toFixed(7);
-      st.textContent = `✅ Ubicación capturada (Precisión: ±${Math.round(pos.coords.accuracy)}m)`;
-      st.style.color = '#34d399';
-    },
-    err => {
-      st.textContent = '⚠️ Error GPS: Activa la ubicación del teléfono y otorga permisos.';
-      st.style.color = '#f87171';
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
-}
-
-function procesarFoto(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX_W = 800;
-      const scale = Math.min(1, MAX_W / img.width);
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.78);
-      document.getElementById('m-preview').src = currentPhotoBase64;
-      document.getElementById('preview-box').style.display = 'block';
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-async function saveRecord() {
-  const id = document.getElementById('m-id').value;
-  const lugar = document.getElementById('m-lugar').value.trim();
-  if (!lugar) return alert('Ingresa el nombre del lugar.');
-
-  const totalInput = Math.max(0, Number(document.getElementById('m-cantidad').value || 0));
-  const opInput = Math.max(0, Number(document.getElementById('m-operativas').value || 0));
-  const noOpInput = Math.max(0, Number(document.getElementById('m-no-operativas').value || 0));
-
-  let noOperativas = noOpInput;
-  let operativas = opInput;
-  let cantidad = totalInput;
-
-  if (noOperativas > 0 && operativas + noOperativas !== cantidad) {
-    if (cantidad >= noOperativas) {
-      operativas = cantidad - noOperativas;
-    } else {
-      cantidad = operativas + noOperativas;
+      distSel.value = curDist;
+      tipoSel.value = curTipo;
+      estSel.value = curEst;
     }
-  } else if (cantidad !== operativas + noOperativas) {
-    cantidad = operativas + noOperativas;
-  }
 
-  let estado = document.getElementById('m-estado').value;
-  if (noOperativas > 0 && estado === 'Operativo') {
-    estado = 'Dañado';
-  }
+    function render() {
+      updateFilterOptions();
+      const filtered = getFilteredRecords();
 
-  const latVal = document.getElementById('m-lat').value.trim();
-  const lngVal = document.getElementById('m-lng').value.trim();
-  const now = new Date().toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' });
+      const totalPuntos = filtered.length;
+      const conGps = filtered.filter(r => r.lat !== null && r.lng !== null).length;
+      const op = filtered.reduce((acc, r) => acc + (Number(r.operativas) || 0), 0);
+      const noOp = filtered.reduce((acc, r) => acc + (Number(r.noOperativas) || 0), 0);
+      const totalUnid = op + noOp;
+      const novedad = filtered.filter(r => (Number(r.noOperativas) || 0) > 0).length;
+      const conFoto = filtered.filter(r => Boolean(r.foto)).length;
 
-  const payload = {
-    id: id || `CONT-${String(records.length + 1).padStart(3, '0')}`,
-    lugar,
-    distrito: Number(document.getElementById('m-distrito').value),
-    cantidad,
-    operativas,
-    noOperativas,
-    tipo: document.getElementById('m-tipo').value,
-    estado,
-    lat: latVal ? parseFloat(latVal) : null,
-    lng: lngVal ? parseFloat(lngVal) : null,
-    supervisor: document.getElementById('m-supervisor').value.trim(),
-    observaciones: document.getElementById('m-obs').value.trim(),
-    foto: currentPhotoBase64,
-    ultimaActualizacion: now
-  };
+      document.getElementById('kpiPuntos').textContent = totalPuntos;
+      document.getElementById('kpiGps').textContent = `${conGps} con GPS`;
+      document.getElementById('kpiUnidades').textContent = totalUnid;
+      document.getElementById('kpiOpNoOp').textContent = `${op} op. / ${noOp} no op.`;
+      document.getElementById('kpiOperativas').textContent = op;
+      document.getElementById('kpiNoOperativas').textContent = noOp;
+      document.getElementById('kpiNovedad').textContent = `${novedad} puntos con novedad`;
+      document.getElementById('kpiFotos').textContent = conFoto;
 
-  if (id) {
-    const idx = records.findIndex(x => x.id === id);
-    records[idx] = payload;
-  } else {
-    records.unshift(payload);
-  }
-
-  guardarLocalSeguro();
-  selectedId = payload.id;
-  closeModal();
-  render();
-  await pushRecordToCloud(payload);
-}
-
-function exportCSV() {
-  const headers = ['ID','Lugar','Distrito','Tipo','Cantidad_Total','Unidades_Operativas','Unidades_No_Operables','Latitud','Longitud','Link_Maps','Estado','Supervisor','Observaciones','Ultima_Actualizacion'];
-  const rows = records.map(r => {
-    const u = getDesgloseUnidades(r);
-    return [
-      r.id, `"${String(r.lugar || '').replace(/"/g,'""')}"`, r.distrito, `"${r.tipo}"`, u.total, u.op, u.noOp,
-      r.lat || '', r.lng || '', (r.lat && r.lng) ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : '',
-      r.estado, `"${r.supervisor || ''}"`, `"${String(r.observaciones || '').replace(/"/g,'""')}"`, `"${r.ultimaActualizacion || ''}"`
-    ];
-  });
-  const csv = '\uFEFF' + [headers.join(';'), ...rows.map(e => e.join(';'))].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `Control_Contenedores_Pirai_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-}
-
-function exportBackup() {
-  const blob = new Blob([JSON.stringify(records)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `Respaldo_Contenedores_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-}
-
-function importBackup(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (Array.isArray(data)) {
-        records = data;
-        guardarLocalSeguro();
-        render();
-        alert(`✅ Se cargaron ${records.length} puntos correctamente.`);
+      markersLayer.clearLayers();
+      const bounds = [];
+      filtered.forEach(r => {
+        if (r.lat !== null && r.lng !== null) {
+          const marker = L.circleMarker([r.lat, r.lng], {
+            radius: 7,
+            fillColor: getMarkerColor(r.tipo),
+            color: '#ffffff',
+            weight: 1.5,
+            opacity: 1,
+            fillOpacity: 0.9
+          });
+          marker.bindPopup(`<strong>${r.id}</strong><br/>${r.lugar}<br/>Op: ${r.operativas} | No op: ${r.noOperativas}`);
+          marker.on('click', () => renderDetail(r));
+          marker.addTo(markersLayer);
+          bounds.push([r.lat, r.lng]);
+        }
+      });
+      if (bounds.length > 0) {
+        map.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
       }
-    } catch { alert('Archivo JSON inválido.'); }
-  };
-  reader.readAsText(file);
-}
 
-render();
-syncFromCloud(false);
-</script>
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = filtered.map(r => {
+        const hasGps = r.lat !== null && r.lng !== null;
+        const pillClass = r.noOperativas > 0 ? 'pill-bad' : 'pill-ok';
+        return `
+          <tr>
+            <td><strong>${r.id}</strong></td>
+            <td>${r.lugar}</td>
+            <td>${r.distrito}</td>
+            <td>${r.tipo}</td>
+            <td><span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} no op</span></td>
+            <td>${hasGps ? '📍 Sí' : '—'}</td>
+            <td>${r.estado}</td>
+            <td>${r.foto ? '📷 Sí' : '—'}</td>
+            <td><button type="button" onclick="openEditModal('${r.id.replace(/'/g, "\\'")}')">Editar</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function syncFromSheets() {
+      setStatus('Sincronizando desde Google Sheets...');
+      try {
+        const res = await fetch(API_URL, { method: 'GET' });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Respuesta inválida');
+        records = (data.records || []).map(normalizeRecord);
+        saveLocal();
+        render();
+        setStatus(`Sincronizado: ${records.length} registros en Google Sheets (${new Date().toLocaleTimeString()})`);
+      } catch (err) {
+        setStatus(`Error al sincronizar: ${err.message}`, true);
+      }
+    }
+
+    async function postToSheets(payload) {
+      await fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    async function seedToSheets() {
+      if (!records.length) {
+        setStatus('No hay registros para subir. Carga o agrega puntos primero.', true);
+        return;
+      }
+      setStatus(`Subiendo ${records.length} registros a Google Sheets...`);
+      try {
+        await postToSheets({ action: 'seed', records });
+        setTimeout(syncFromSheets, 1800);
+      } catch (err) {
+        setStatus(`Error al subir base: ${err.message}`, true);
+      }
+    }
+
+    function openEditModal(id = '') {
+      const rec = id ? records.find(r => r.id === id) : null;
+      document.getElementById('modalTitle').textContent = rec ? `Editar ${rec.id}` : 'Nuevo Punto de Contenedores';
+      document.getElementById('fId').value = rec ? rec.id : '';
+      document.getElementById('fDistrito').value = rec ? rec.distrito : '';
+      document.getElementById('fLugar').value = rec ? rec.lugar : '';
+      document.getElementById('fTipo').value = rec ? rec.tipo : '';
+      document.getElementById('fEstado').value = rec ? rec.estado : 'Operativo';
+      document.getElementById('fOperativas').value = rec ? rec.operativas : 0;
+      document.getElementById('fNoOperativas').value = rec ? rec.noOperativas : 0;
+      document.getElementById('fLat').value = rec && rec.lat !== null ? rec.lat : '';
+      document.getElementById('fLng').value = rec && rec.lng !== null ? rec.lng : '';
+      document.getElementById('fSupervisor').value = rec ? rec.supervisor : '';
+      document.getElementById('fFoto').value = rec ? rec.foto : '';
+      document.getElementById('fFotoFile').value = '';
+      document.getElementById('fObservaciones').value = rec ? rec.observaciones : '';
+      document.getElementById('modalBackdrop').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modalBackdrop').classList.remove('open');
+    }
+
+    document.getElementById('fFotoFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById('fFoto').value = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('pointForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const op = Number(document.getElementById('fOperativas').value) || 0;
+      const noOp = Number(document.getElementById('fNoOperativas').value) || 0;
+      const latRaw = document.getElementById('fLat').value.trim();
+      const lngRaw = document.getElementById('fLng').value.trim();
+
+      const updated = normalizeRecord({
+        id: document.getElementById('fId').value.trim(),
+        lugar: document.getElementById('fLugar').value.trim(),
+        distrito: document.getElementById('fDistrito').value.trim(),
+        cantidad: op + noOp,
+        operativas: op,
+        noOperativas: noOp,
+        tipo: document.getElementById('fTipo').value.trim(),
+        lat: latRaw === '' ? null : Number(latRaw),
+        lng: lngRaw === '' ? null : Number(lngRaw),
+        estado: document.getElementById('fEstado').value.trim(),
+        supervisor: document.getElementById('fSupervisor').value.trim(),
+        observaciones: document.getElementById('fObservaciones').value.trim(),
+        foto: document.getElementById('fFoto').value.trim(),
+        ultimaActualizacion: new Date().toLocaleString()
+      });
+
+      const idx = records.findIndex(r => r.id === updated.id);
+      if (idx >= 0) records[idx] = updated;
+      else records.push(updated);
+
+      saveLocal();
+      render();
+      closeModal();
+
+      setStatus(`Guardando ${updated.id} en Google Sheets...`);
+      try {
+        await postToSheets({ action: 'upsert', record: updated });
+        setTimeout(syncFromSheets, 1500);
+      } catch (err) {
+        setStatus(`Guardado local; error en nube: ${err.message}`, true);
+      }
+    });
+
+    document.getElementById('btnNew').addEventListener('click', () => openEditModal(''));
+    document.getElementById('btnCancelModal').addEventListener('click', closeModal);
+    document.getElementById('btnSync').addEventListener('click', syncFromSheets);
+    document.getElementById('btnSeed').addEventListener('click', seedToSheets);
+
+    document.getElementById('btnCsv').addEventListener('click', () => {
+      const headers = ['ID','LUGAR','DISTRITO','CANTIDAD','OPERATIVOS','NO OPERATIVOS','TIPO','LAT','LNG','ESTADO','SUPERVISOR','OBSERVACIONES','FOTO','ULTIMA ACTUALIZACIÓN'];
+      const rows = records.map(r => [
+        r.id, r.lugar, r.distrito, r.cantidad, r.operativas, r.noOperativas,
+        r.tipo, r.lat ?? '', r.lng ?? '', r.estado, r.supervisor, r.observaciones, r.foto, r.ultimaActualizacion
+      ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
+      const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'contenedores_pirai.csv';
+      a.click();
+    });
+
+    document.getElementById('btnExportJson').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'respaldo_contenedores_pirai.json';
+      a.click();
+    });
+
+    document.getElementById('btnImportJson').addEventListener('click', () => {
+      document.getElementById('fileJsonInput').click();
+    });
+
+    document.getElementById('fileJsonInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const arr = JSON.parse(reader.result);
+          if (!Array.isArray(arr)) throw new Error('El JSON debe ser una lista');
+          records = arr.map(normalizeRecord);
+          saveLocal();
+          render();
+          setStatus(`Cargados ${records.length} registros desde archivo JSON.`);
+        } catch (err) {
+          setStatus(`Error al leer JSON: ${err.message}`, true);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    ['searchInput', 'filterDistrito', 'filterTipo', 'filterEstado', 'filterUnidades', 'filterGps'].forEach(id => {
+      document.getElementById(id).addEventListener('input', render);
+      document.getElementById(id).addEventListener('change', render);
+    });
+
+    initMap();
+    records = loadLocal();
+    render();
+    syncFromSheets();
+  </script>
 </body>
 </html>
