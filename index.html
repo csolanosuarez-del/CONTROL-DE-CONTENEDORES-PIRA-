@@ -282,7 +282,12 @@
     <section class="filters">
       <input id="searchInput" type="search" placeholder="Buscar lugar o ID..." />
       <select id="filterDistrito"><option value="">Todos los Distritos</option></select>
-      <select id="filterTipo"><option value="">Todos los Tipos</option></select>
+      <select id="filterTipo">
+        <option value="">Todos los Tipos</option>
+        <option value="contenedor 1.5 m3">contenedor 1.5 m3</option>
+        <option value="contenedor 10 m3">contenedor 10 m3</option>
+        <option value="caja autocompactadora">caja autocompactadora</option>
+      </select>
       <select id="filterEstado"><option value="">Todos los Estados</option></select>
       <select id="filterUnidades">
         <option value="">Unidades: Todas</option>
@@ -300,7 +305,7 @@
       <div class="left-col">
         <div id="map"></div>
         <div class="legend">
-          🟢 Contenedor de 1.5 m³ | 🔵 Caja de 10 m³ | 🟠 Autocompactadora. Toca o haz clic en un marcador para ver su foto y unidades aquí abajo.
+          🟢 contenedor 1.5 m3 | 🔵 contenedor 10 m3 | 🟠 caja autocompactadora. Toca o haz clic en un marcador para ver su foto y unidades aquí abajo.
         </div>
         <div id="detailCard" class="detail-box">
           <h3>Toca un contenedor en el mapa</h3>
@@ -351,9 +356,9 @@
             <label>Tipo de Contenedor</label>
             <select id="fTipo" required>
               <option value="">Selecciona un tipo...</option>
-              <option value="Contenedor de 1.5 m³">Contenedor de 1.5 m³</option>
-              <option value="Caja de 10 m³">Caja de 10 m³</option>
-              <option value="Autocompactadora">Autocompactadora</option>
+              <option value="contenedor 1.5 m3">contenedor 1.5 m3</option>
+              <option value="contenedor 10 m3">contenedor 10 m3</option>
+              <option value="caja autocompactadora">caja autocompactadora</option>
             </select>
           </div>
           <div>
@@ -408,10 +413,10 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbydlRNoUEwB9ncCWfZPtS1Co2Q3jWaX0KKdkOJ9KsJFtxCue5H4Urbg1aGFxDbDIrOZ/exec';
     const STORAGE_KEY = 'pirai_contenedores_v1';
 
-    const FIXED_TYPES = [
-      { key: '1.5', label: 'Contenedor de 1.5 m³', shortLabel: '1.5 m³' },
-      { key: '10', label: 'Caja de 10 m³', shortLabel: '10 m³' },
-      { key: 'autocomp', label: 'Autocompactadora', shortLabel: 'Autocompactadora' }
+    const ALLOWED_TYPES = [
+      'contenedor 1.5 m3',
+      'contenedor 10 m3',
+      'caja autocompactadora'
     ];
 
     const INITIAL_DATA = [];
@@ -439,22 +444,22 @@
       el.style.color = isError ? '#f87171' : '#93c5fd';
     }
 
-    function matchFixedType(tipoVal) {
-      const t = String(tipoVal || '').toLowerCase().replace(',', '.').replace(/\s+/g, ' ').trim();
-      if (!t) return null;
-      if (t.includes('compact') || t.includes('autocomp') || t.includes('15')) return 'autocomp';
-      if (t.includes('10')) return '10';
-      if (t.includes('1.5')) return '1.5';
-      return null;
+    function parseNum(val) {
+      if (val === '' || val === null || val === undefined) return 0;
+      const n = Number(String(val).replace(',', '.').trim());
+      return Number.isNaN(n) ? 0 : n;
     }
 
-    function setTipoField(tipoVal) {
-      const sel = document.getElementById('fTipo');
-      const matchedKey = matchFixedType(tipoVal);
-      if (matchedKey === '1.5') sel.value = 'Contenedor de 1.5 m³';
-      else if (matchedKey === '10') sel.value = 'Caja de 10 m³';
-      else if (matchedKey === 'autocomp') sel.value = 'Autocompactadora';
-      else sel.value = '';
+    function normalizeType(tipoVal) {
+      const raw = String(tipoVal || '').toLowerCase().replace(',', '.').replace(/³/g, '3').replace(/\s+/g, ' ').trim();
+      if (!raw) return 'contenedor 1.5 m3';
+      if (raw.includes('compact') || raw.includes('autocomp') || raw.includes('15')) {
+        return 'caja autocompactadora';
+      }
+      if (raw.includes('10')) {
+        return 'contenedor 10 m3';
+      }
+      return 'contenedor 1.5 m3';
     }
 
     function compressImageFile(file, maxWidth = 1024, quality = 0.72) {
@@ -535,26 +540,43 @@
     }
 
     function normalizeRecord(raw) {
-      const op = Number(raw.operativas ?? 0) || 0;
-      const noOp = Number(raw.noOperativas ?? 0) || 0;
-      const cant = raw.cantidad !== '' && raw.cantidad !== undefined ? Number(raw.cantidad) : (op + noOp);
-      const lat = (raw.lat === '' || raw.lat === null || raw.lat === undefined || Number.isNaN(Number(raw.lat))) ? null : Number(raw.lat);
-      const lng = (raw.lng === '' || raw.lng === null || raw.lng === undefined || Number.isNaN(Number(raw.lng))) ? null : Number(raw.lng);
+      let op = parseNum(raw.operativas ?? raw.OPERATIVOS);
+      let noOp = parseNum(raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS']);
+      const rawCant = raw.cantidad ?? raw.CANTIDAD;
+      let cant = (rawCant !== '' && rawCant !== undefined && rawCant !== null) ? parseNum(rawCant) : (op + noOp);
+
+      if (op === 0 && noOp === 0 && cant > 0) {
+        const est = String(raw.estado ?? raw.ESTADO ?? '').toLowerCase();
+        if (est.includes('no op') || est.includes('inoper')) noOp = cant;
+        else op = cant;
+      } else {
+        cant = op + noOp;
+      }
+
+      const latRaw = raw.lat ?? raw.LAT;
+      const lngRaw = raw.lng ?? raw.LNG;
+      const latNum = (latRaw === '' || latRaw === null || latRaw === undefined) ? NaN : Number(String(latRaw).replace(',', '.').trim());
+      const lngNum = (lngRaw === '' || lngRaw === null || lngRaw === undefined) ? NaN : Number(String(lngRaw).replace(',', '.').trim());
+      const lat = Number.isNaN(latNum) ? null : latNum;
+      const lng = Number.isNaN(lngNum) ? null : lngNum;
+
+      const distRaw = raw.distrito ?? raw.DISTRITO;
+
       return {
-        id: String(raw.id ?? '').trim(),
-        lugar: String(raw.lugar ?? '').trim(),
-        distrito: raw.distrito === '' || raw.distrito === undefined ? '' : Number(raw.distrito),
+        id: String(raw.id ?? raw.ID ?? '').trim(),
+        lugar: String(raw.lugar ?? raw.LUGAR ?? '').trim(),
+        distrito: distRaw === '' || distRaw === undefined || distRaw === null ? '' : Number(distRaw),
         cantidad: cant,
         operativas: op,
         noOperativas: noOp,
-        tipo: String(raw.tipo ?? '').trim(),
+        tipo: normalizeType(raw.tipo ?? raw.TIPO ?? ''),
         lat,
         lng,
-        estado: String(raw.estado ?? '').trim(),
-        supervisor: String(raw.supervisor ?? '').trim(),
-        observaciones: String(raw.observaciones ?? '').trim(),
-        foto: String(raw.foto ?? '').trim(),
-        ultimaActualizacion: String(raw.ultimaActualizacion ?? '').trim()
+        estado: String(raw.estado ?? raw.ESTADO ?? '').trim(),
+        supervisor: String(raw.supervisor ?? raw.SUPERVISOR ?? '').trim(),
+        observaciones: String(raw.observaciones ?? raw.OBSERVACIONES ?? '').trim(),
+        foto: String(raw.foto ?? raw.FOTO ?? '').trim(),
+        ultimaActualizacion: String(raw.ultimaActualizacion ?? raw['ULTIMA ACTUALIZACIÓN'] ?? '').trim()
       };
     }
 
@@ -587,9 +609,9 @@
     }
 
     function getMarkerColor(tipo) {
-      const key = matchFixedType(tipo);
-      if (key === 'autocomp') return '#f97316';
-      if (key === '10') return '#3b82f6';
+      const t = normalizeType(tipo);
+      if (t === 'caja autocompactadora') return '#f97316';
+      if (t === 'contenedor 10 m3') return '#3b82f6';
       return '#10b981';
     }
 
@@ -602,7 +624,7 @@
       const imgHtml = rec.foto ? `<img src="${rec.foto}" alt="${rec.lugar}" onerror="this.style.display='none'" />` : '';
       box.innerHTML = `
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
-        <div class="sync-status">Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo || '-'} | Estado: ${rec.estado || '-'}</div>
+        <div class="sync-status">Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${rec.estado || '-'}</div>
         <div style="margin-top:8px; font-size:0.86rem;">
           <strong>Unidades:</strong> ${rec.operativas} operativos / ${rec.noOperativas} no operativos (Total: ${rec.cantidad})<br/>
           <strong>Supervisor:</strong> ${rec.supervisor || '-'}<br/>
@@ -615,31 +637,31 @@
     function renderTypeSummary(filtered) {
       const listEl = document.getElementById('typeSummaryList');
       const totals = {
-        '1.5': { total: 0, op: 0, noOp: 0 },
-        '10': { total: 0, op: 0, noOp: 0 },
-        'autocomp': { total: 0, op: 0, noOp: 0 }
+        'contenedor 1.5 m3': { total: 0, op: 0, noOp: 0 },
+        'contenedor 10 m3': { total: 0, op: 0, noOp: 0 },
+        'caja autocompactadora': { total: 0, op: 0, noOp: 0 }
       };
 
       filtered.forEach(r => {
-        const key = matchFixedType(r.tipo);
-        if (!key || !totals[key]) return;
-        const op = Number(r.operativas) || 0;
-        const noOp = Number(r.noOperativas) || 0;
+        const key = normalizeType(r.tipo);
+        if (!totals[key]) return;
+        const op = parseNum(r.operativas);
+        const noOp = parseNum(r.noOperativas);
         totals[key].op += op;
         totals[key].noOp += noOp;
         totals[key].total += (op + noOp);
       });
 
-      listEl.innerHTML = FIXED_TYPES.map(ft => {
-        const t = totals[ft.key];
+      listEl.innerHTML = ALLOWED_TYPES.map(t => {
+        const item = totals[t];
         return `
           <div class="type-chip">
-            <strong>${ft.shortLabel}</strong>
-            <span>${t.total} total</span>
+            <strong>${t}</strong>
+            <span>${item.total} total</span>
             <span>·</span>
-            <span class="type-op">${t.op} op</span>
+            <span class="type-op">${item.op} op</span>
             <span>·</span>
-            <span class="type-noop">${t.noOp} inoperables</span>
+            <span class="type-noop">${item.noOp} inoperables</span>
           </div>
         `;
       }).join('');
@@ -656,7 +678,7 @@
       return records.filter(r => {
         if (q && !r.id.toLowerCase().includes(q) && !r.lugar.toLowerCase().includes(q)) return false;
         if (dist && String(r.distrito) !== dist) return false;
-        if (tipo && r.tipo !== tipo) return false;
+        if (tipo && normalizeType(r.tipo) !== tipo) return false;
         if (est && r.estado !== est) return false;
         if (unid === 'con_no_op' && r.noOperativas <= 0) return false;
         if (unid === 'todo_op' && r.noOperativas > 0) return false;
@@ -669,23 +691,18 @@
 
     function updateFilterOptions() {
       const distSel = document.getElementById('filterDistrito');
-      const tipoSel = document.getElementById('filterTipo');
       const estSel = document.getElementById('filterEstado');
 
       const curDist = distSel.value;
-      const curTipo = tipoSel.value;
       const curEst = estSel.value;
 
       const dists = [...new Set(records.map(r => r.distrito).filter(v => v !== ''))].sort((a, b) => a - b);
-      const tipos = FIXED_TYPES.map(ft => ft.label);
       const ests = [...new Set(records.map(r => r.estado).filter(Boolean))].sort();
 
       distSel.innerHTML = '<option value="">Todos los Distritos</option>' + dists.map(d => `<option value="${d}">${d}</option>`).join('');
-      tipoSel.innerHTML = '<option value="">Todos los Tipos</option>' + tipos.map(t => `<option value="${t}">${t}</option>`).join('');
       estSel.innerHTML = '<option value="">Todos los Estados</option>' + ests.map(e => `<option value="${e}">${e}</option>`).join('');
 
       distSel.value = curDist;
-      tipoSel.value = curTipo;
       estSel.value = curEst;
     }
 
@@ -696,10 +713,10 @@
 
       const totalPuntos = filtered.length;
       const conGps = filtered.filter(r => r.lat !== null && r.lng !== null).length;
-      const op = filtered.reduce((acc, r) => acc + (Number(r.operativas) || 0), 0);
-      const noOp = filtered.reduce((acc, r) => acc + (Number(r.noOperativas) || 0), 0);
+      const op = filtered.reduce((acc, r) => acc + parseNum(r.operativas), 0);
+      const noOp = filtered.reduce((acc, r) => acc + parseNum(r.noOperativas), 0);
       const totalUnid = op + noOp;
-      const novedad = filtered.filter(r => (Number(r.noOperativas) || 0) > 0).length;
+      const novedad = filtered.filter(r => parseNum(r.noOperativas) > 0).length;
       const conFoto = filtered.filter(r => Boolean(r.foto)).length;
 
       document.getElementById('kpiPuntos').textContent = totalPuntos;
@@ -723,7 +740,7 @@
             opacity: 1,
             fillOpacity: 0.9
           });
-          marker.bindPopup(`<strong>${r.id}</strong><br/>${r.lugar}<br/>Op: ${r.operativas} | No op: ${r.noOperativas}`);
+          marker.bindPopup(`<strong>${r.id}</strong><br/>${r.lugar}<br/>${r.tipo}<br/>Op: ${r.operativas} | No op: ${r.noOperativas}`);
           marker.on('click', () => renderDetail(r));
           marker.addTo(markersLayer);
           bounds.push([r.lat, r.lng]);
@@ -885,7 +902,7 @@
 
       document.getElementById('fDistrito').value = rec ? rec.distrito : '';
       document.getElementById('fLugar').value = rec ? rec.lugar : '';
-      setTipoField(rec ? rec.tipo : '');
+      document.getElementById('fTipo').value = rec ? normalizeType(rec.tipo) : 'contenedor 1.5 m3';
       document.getElementById('fEstado').value = rec ? rec.estado : 'Operativo';
       document.getElementById('fOperativas').value = rec ? rec.operativas : 0;
       document.getElementById('fNoOperativas').value = rec ? rec.noOperativas : 0;
@@ -920,11 +937,7 @@
 
     document.getElementById('pointForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const tipoFinal = document.getElementById('fTipo').value.trim();
-      if (!tipoFinal) {
-        alert('Por favor selecciona uno de los 3 tipos de contenedor.');
-        return;
-      }
+      const tipoFinal = normalizeType(document.getElementById('fTipo').value);
 
       const op = Number(document.getElementById('fOperativas').value) || 0;
       const noOp = Number(document.getElementById('fNoOperativas').value) || 0;
