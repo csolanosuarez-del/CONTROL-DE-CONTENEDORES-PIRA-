@@ -308,8 +308,15 @@
             <input id="fLugar" required />
           </div>
           <div>
-            <label>Tipo</label>
-            <input id="fTipo" placeholder="Ej: 1.5 m³, 10 m³, Autocompactadora" />
+            <label>Tipo de Contenedor</label>
+            <select id="fTipo" required>
+              <option value="">Selecciona un tipo...</option>
+              <option value="1.5 m³">1.5 m³</option>
+              <option value="10 m³">10 m³</option>
+              <option value="Autocompactadora">Autocompactadora</option>
+              <option value="__otro__">Otro...</option>
+            </select>
+            <input id="fTipoCustom" placeholder="Especificar otro tipo..." style="margin-top:6px; display:none;" />
           </div>
           <div>
             <label>Estado</label>
@@ -385,6 +392,50 @@
       el.textContent = msg;
       el.style.color = isError ? '#f87171' : '#93c5fd';
     }
+
+    function setTipoField(tipoVal) {
+      const sel = document.getElementById('fTipo');
+      const customInp = document.getElementById('fTipoCustom');
+      const val = String(tipoVal || '').trim();
+      const standardOptions = ['1.5 m³', '10 m³', 'Autocompactadora'];
+
+      if (!val) {
+        sel.value = '';
+        customInp.value = '';
+        customInp.style.display = 'none';
+        return;
+      }
+
+      if (standardOptions.includes(val)) {
+        sel.value = val;
+        customInp.value = '';
+        customInp.style.display = 'none';
+      } else {
+        sel.value = '__otro__';
+        customInp.value = val;
+        customInp.style.display = 'block';
+      }
+    }
+
+    function getSelectedTipo() {
+      const sel = document.getElementById('fTipo').value;
+      const customInp = document.getElementById('fTipoCustom');
+      if (sel === '__otro__') {
+        return customInp.value.trim();
+      }
+      return sel.trim();
+    }
+
+    document.getElementById('fTipo').addEventListener('change', (e) => {
+      const customInp = document.getElementById('fTipoCustom');
+      if (e.target.value === '__otro__') {
+        customInp.style.display = 'block';
+        customInp.focus();
+      } else {
+        customInp.style.display = 'none';
+        customInp.value = '';
+      }
+    });
 
     function compressImageFile(file, maxWidth = 1024, quality = 0.72) {
       return new Promise((resolve, reject) => {
@@ -571,7 +622,7 @@
       const curEst = estSel.value;
 
       const dists = [...new Set(records.map(r => r.distrito).filter(v => v !== ''))].sort((a, b) => a - b);
-      const tipos = [...new Set(records.map(r => r.tipo).filter(Boolean))].sort();
+      const tipos = [...new Set(['1.5 m³', '10 m³', 'Autocompactadora', ...records.map(r => r.tipo).filter(Boolean)])];
       const ests = [...new Set(records.map(r => r.estado).filter(Boolean))].sort();
 
       distSel.innerHTML = '<option value="">Todos los Distritos</option>' + dists.map(d => `<option value="${d}">${d}</option>`).join('');
@@ -762,7 +813,7 @@
 
       document.getElementById('fDistrito').value = rec ? rec.distrito : '';
       document.getElementById('fLugar').value = rec ? rec.lugar : '';
-      document.getElementById('fTipo').value = rec ? rec.tipo : '';
+      setTipoField(rec ? rec.tipo : '');
       document.getElementById('fEstado').value = rec ? rec.estado : 'Operativo';
       document.getElementById('fOperativas').value = rec ? rec.operativas : 0;
       document.getElementById('fNoOperativas').value = rec ? rec.noOperativas : 0;
@@ -797,6 +848,12 @@
 
     document.getElementById('pointForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const tipoFinal = getSelectedTipo();
+      if (!tipoFinal) {
+        alert('Por favor selecciona o especifica el tipo de contenedor.');
+        return;
+      }
+
       const op = Number(document.getElementById('fOperativas').value) || 0;
       const noOp = Number(document.getElementById('fNoOperativas').value) || 0;
       const latRaw = document.getElementById('fLat').value.trim();
@@ -809,7 +866,7 @@
         cantidad: op + noOp,
         operativas: op,
         noOperativas: noOp,
-        tipo: document.getElementById('fTipo').value.trim(),
+        tipo: tipoFinal,
         lat: latRaw === '' ? null : Number(latRaw),
         lng: lngRaw === '' ? null : Number(lngRaw),
         estado: document.getElementById('fEstado').value.trim(),
