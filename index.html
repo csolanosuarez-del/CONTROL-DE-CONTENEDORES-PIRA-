@@ -76,7 +76,7 @@
     .kpi .sub { font-size: 0.75rem; color: var(--muted); }
     .filters {
       display: grid;
-      grid-template-columns: 2fr repeat(4, 1fr);
+      grid-template-columns: 2fr repeat(5, 1fr);
       gap: 10px;
       margin-bottom: 16px;
     }
@@ -541,25 +541,47 @@
     async function syncFromSheets() {
       setStatus('Sincronizando desde Google Sheets...');
       try {
-        const res = await fetch(API_URL, { method: 'GET' });
-        const data = await res.json();
+        const url = `${API_URL}?t=${Date.now()}`;
+        const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseErr) {
+          throw new Error('Apps Script devolvió HTML en lugar de JSON (revisa permisos o vinculación a la hoja)');
+        }
         if (!data.ok) throw new Error(data.error || 'Respuesta inválida');
-        records = (data.records || []).map(normalizeRecord);
-        saveLocal();
-        render();
-        setStatus(`Sincronizado: ${records.length} registros en Google Sheets (${new Date().toLocaleTimeString()})`);
+        if (Array.isArray(data.records) && data.records.length > 0) {
+          records = data.records.map(normalizeRecord);
+          saveLocal();
+          render();
+          setStatus(`Sincronizado: ${records.length} registros desde Google Sheets (${new Date().toLocaleTimeString()})`);
+        } else {
+          setStatus(`Conectado a Google Sheets (hoja vacía). Usa "Subir Base a Nube" para enviar tus ${records.length} registros.`);
+        }
       } catch (err) {
         setStatus(`Error al sincronizar: ${err.message}`, true);
       }
     }
 
     async function postToSheets(payload) {
-      await fetch(API_URL, {
+      const res = await fetch(API_URL, {
         method: 'POST',
-        mode: 'no-cors',
+        redirect: 'follow',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error('Apps Script no devolvió JSON válido al guardar');
+      }
+      if (!data.ok) throw new Error(data.error || 'Error interno en Apps Script');
+      return data;
     }
 
     async function seedToSheets() {
@@ -569,8 +591,8 @@
       }
       setStatus(`Subiendo ${records.length} registros a Google Sheets...`);
       try {
-        await postToSheets({ action: 'seed', records });
-        setTimeout(syncFromSheets, 1800);
+        const resp = await postToSheets({ action: 'seed', records });
+        setStatus(`¡Listo! ${resp.count || records.length} registros guardados en Google Sheets (${new Date().toLocaleTimeString()})`);
       } catch (err) {
         setStatus(`Error al subir base: ${err.message}`, true);
       }
@@ -644,7 +666,7 @@
       setStatus(`Guardando ${updated.id} en Google Sheets...`);
       try {
         await postToSheets({ action: 'upsert', record: updated });
-        setTimeout(syncFromSheets, 1500);
+        setStatus(`Guardado en Google Sheets: ${updated.id} (${new Date().toLocaleTimeString()})`);
       } catch (err) {
         setStatus(`Guardado local; error en nube: ${err.message}`, true);
       }
