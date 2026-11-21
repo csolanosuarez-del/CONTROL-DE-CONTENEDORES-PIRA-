@@ -195,7 +195,6 @@
       border: 1px solid var(--border);
     }
 
-    /* Ajustes compactos para pantalla de celular */
     @media (max-width: 640px) {
       header { padding: 10px 12px; gap: 8px; }
       header h1 { font-size: 1rem; }
@@ -432,8 +431,7 @@
               <th>Lugar / Ubicación</th>
               <th>Dist.</th>
               <th>Tipo</th>
-              <th>Operables / Inop.</th>
-              <th>Base (SB / Rep)</th>
+              <th>Operable / Inoperable</th>
               <th>Total</th>
               <th>GPS</th>
               <th>Estado (Calc.)</th>
@@ -572,8 +570,6 @@
     let pendingMap = {};
     let countsBackup = {};
     let lastRawSample = null;
-    let currentHiddenStandBy = 0;
-    let currentHiddenReparacion = 0;
 
     function setStatus(msg, isError = false) {
       const el = document.getElementById('syncStatus');
@@ -601,13 +597,16 @@
 
     function isBaseRecord(rec) {
       if (!rec) return false;
-      const idStr = String(rec.id || '').toUpperCase();
+      const idStr = String(rec.id || '').trim().toUpperCase();
       const lugarStr = String(rec.lugar || '').toUpperCase();
       const obsStr = String(rec.observaciones || '').toUpperCase();
-      if (idStr.startsWith('BASE') || lugarStr.includes('BASE DE OPERACIONES') || lugarStr.includes('BASE OPERACIONES') || obsStr.includes('[BASE]')) {
-        return true;
-      }
-      return parseNum(rec.standBy) > 0 || parseNum(rec.reparacion) > 0;
+      return (
+        idStr.startsWith('BASE-') ||
+        idStr === 'BASE' ||
+        lugarStr.includes('BASE DE OPERACIONES') ||
+        lugarStr.includes('BASE OPERACIONES') ||
+        obsStr.includes('[BASE]')
+      );
     }
 
     function toggleBaseFieldsVisibility() {
@@ -936,13 +935,15 @@
       const totalUnid = calculateTotalUnits(rec);
       const imgHtml = rec.foto ? `<img src="${rec.foto}" alt="${rec.lugar}" onerror="this.style.display='none'" />` : '';
       const gpsText = (rec.lat !== null && rec.lng !== null) ? `${rec.lat}, ${rec.lng}` : 'Sin GPS';
-      const claseTxt = isBaseRecord(rec) ? 'Base de Operaciones' : 'Punto de Zona';
+      const esBase = isBaseRecord(rec);
+      const unidadesHtml = esBase
+        ? `<strong>Base / Taller:</strong> ${rec.standBy} stand by · ${rec.reparacion} reparación<br/>`
+        : `<strong>Unidades:</strong> ${rec.operativas} operable · ${rec.noOperativas} inoperable<br/>`;
       box.innerHTML = `
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
-        <div class="sync-status">${claseTxt} · Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
+        <div class="sync-status">${esBase ? 'Base de Operaciones' : 'Punto de Zona'} · Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
         <div style="margin-top:8px; font-size:0.86rem; line-height:1.5;">
-          <strong>Unidades:</strong> ${rec.operativas} operables · ${rec.noOperativas} inoperables<br/>
-          <strong>Base / Taller:</strong> ${rec.standBy} stand by (en base) · ${rec.reparacion} reparación (en base/taller)<br/>
+          ${unidadesHtml}
           <strong>Total unidades:</strong> ${totalUnid}<br/>
           <strong>GPS:</strong> ${gpsText}<br/>
           <strong>Supervisor:</strong> ${rec.supervisor || '-'}<br/>
@@ -1098,18 +1099,19 @@
         const hasGps = r.lat !== null && r.lng !== null;
         const esBase = isBaseRecord(r);
         const pillClass = r.noOperativas > 0 ? 'pill-bad' : 'pill-ok';
-        const basePillClass = esBase ? 'pill-base' : (r.reparacion > 0 ? 'pill-warn' : 'pill-info');
         const estCalc = calculateStatus(r);
         const estPillClass = getStatusPillClass(estCalc);
         const totalRow = calculateTotalUnits(r);
+        const unidBadge = esBase
+          ? `<span class="pill pill-base">${r.standBy} SB / ${r.reparacion} Rep</span>`
+          : `<span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} inop</span>`;
         return `
           <tr>
             <td><strong>${r.id}</strong></td>
             <td>${r.lugar} ${esBase ? '<span class="pill pill-base">BASE</span>' : ''}</td>
             <td>${r.distrito}</td>
             <td>${r.tipo}</td>
-            <td><span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} inop</span></td>
-            <td><span class="pill ${basePillClass}">${r.standBy} SB / ${r.reparacion} Rep</span></td>
+            <td>${unidBadge}</td>
             <td><strong>${totalRow}</strong></td>
             <td>${hasGps ? '📍 Sí' : '—'}</td>
             <td><span class="pill ${estPillClass}">${estCalc}</span></td>
@@ -1324,9 +1326,6 @@
       const hintEl = document.getElementById('fIdHint');
       const suggestedId = rec ? rec.id : getNextCorrelativeId(esBase);
 
-      currentHiddenStandBy = rec ? parseNum(rec.standBy) : 0;
-      currentHiddenReparacion = rec ? parseNum(rec.reparacion) : 0;
-
       setGpsMsg('');
       setPhotoMsg('');
       document.getElementById('modalTitle').textContent = rec
@@ -1415,12 +1414,8 @@
 
       const op = Number(document.getElementById('fOperativas').value) || 0;
       const noOp = Number(document.getElementById('fNoOperativas').value) || 0;
-      const standBy = esBase
-        ? (Number(document.getElementById('fStandBy').value) || 0)
-        : currentHiddenStandBy;
-      const reparacion = esBase
-        ? (Number(document.getElementById('fReparacion').value) || 0)
-        : currentHiddenReparacion;
+      const standBy = esBase ? (Number(document.getElementById('fStandBy').value) || 0) : 0;
+      const reparacion = esBase ? (Number(document.getElementById('fReparacion').value) || 0) : 0;
 
       const latRaw = document.getElementById('fLat').value.trim();
       const lngRaw = document.getElementById('fLng').value.trim();
