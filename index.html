@@ -194,6 +194,36 @@
       margin-top: 8px;
       border: 1px solid var(--border);
     }
+
+    /* Ajustes compactos para pantalla de celular */
+    @media (max-width: 640px) {
+      header { padding: 10px 12px; gap: 8px; }
+      header h1 { font-size: 1rem; }
+      .toolbar { gap: 6px; }
+      button, .btn-link { padding: 6px 9px; font-size: 0.76rem; border-radius: 7px; }
+      .container { padding: 10px; }
+      .summary-card { margin-bottom: 10px; border-radius: 8px; }
+      .summary-table { font-size: 0.76rem; min-width: 520px; }
+      .summary-table th,
+      .summary-table td { padding: 6px 7px; }
+      .summary-table th { font-size: 0.72rem; }
+      .kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
+      .kpi { padding: 9px 10px; border-radius: 8px; }
+      .kpi .label { font-size: 0.7rem; }
+      .kpi .val { font-size: 1.2rem; margin: 2px 0; }
+      .kpi .sub { font-size: 0.68rem; }
+      .filters { gap: 7px; margin-bottom: 10px; }
+      input, select, textarea { padding: 7px 9px; font-size: 0.82rem; }
+      .main-grid { gap: 10px; }
+      .left-col { gap: 8px; }
+      #map { height: 225px; border-radius: 8px; }
+      .legend { font-size: 0.7rem; }
+      .detail-box { padding: 10px; border-radius: 8px; }
+      .detail-box h3 { font-size: 0.9rem; }
+      .detail-box img { max-height: 145px; }
+      th, td { padding: 7px 8px; font-size: 0.78rem; }
+    }
+
     .table-wrap {
       background: var(--card);
       border: 1px solid var(--border);
