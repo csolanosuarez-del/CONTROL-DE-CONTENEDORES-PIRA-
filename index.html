@@ -231,7 +231,7 @@
     .kpi .sub { font-size: 0.75rem; color: var(--muted); }
     .filters {
       display: grid;
-      grid-template-columns: 2fr repeat(5, 1fr);
+      grid-template-columns: 1.5fr 1.8fr repeat(4, 1fr);
       gap: 10px;
       margin-bottom: 16px;
     }
@@ -518,9 +518,7 @@
     <section class="filters">
       <input id="searchInput" type="search" placeholder="Buscar lugar o ID..." />
       <select id="filterRegistro">
-        <option value="">Registro: Todos</option>
-        <option value="zona">Solo puntos de zona</option>
-        <option value="base">Base de operaciones</option>
+        <option value="">Punto / Registro: Todos</option>
       </select>
       <select id="filterDistrito"><option value="">Todos los Distritos</option></select>
       <select id="filterTipo">
@@ -1302,8 +1300,9 @@
       return records.filter(r => {
         if (q && !r.id.toLowerCase().includes(q) && !r.lugar.toLowerCase().includes(q)) return false;
         const esBase = isBaseRecord(r);
-        if (reg === 'zona' && esBase) return false;
-        if (reg === 'base' && !esBase) return false;
+        if (reg === '__zona__' && esBase) return false;
+        else if (reg === '__base__' && !esBase) return false;
+        else if (reg && reg !== '__zona__' && reg !== '__base__' && r.id !== reg) return false;
         if (dist && String(r.distrito) !== dist) return false;
         if (tipo && !esBase && normalizeType(r.tipo) !== tipo) return false;
         if (unid === 'con_standby' && r.standBy <= 0) return false;
@@ -1318,6 +1317,28 @@
     }
 
     function updateFilterOptions() {
+      const regSel = document.getElementById('filterRegistro');
+      const curReg = regSel.value;
+      const sortedRecs = [...records].sort((a, b) =>
+        String(a.id || '').localeCompare(String(b.id || ''), 'es', { numeric: true })
+      );
+      const pointOptions = sortedRecs.map(r => {
+        const label = r.lugar && r.lugar !== r.id ? `${r.id} — ${r.lugar}` : r.id;
+        return `<option value="${r.id.replace(/"/g, '&quot;')}">${label}</option>`;
+      }).join('');
+
+      regSel.innerHTML = `
+        <option value="">Punto / Registro: Todos (${records.length})</option>
+        <option value="__zona__">📍 Solo puntos de zona</option>
+        <option value="__base__">🏭 Base de operaciones</option>
+        <optgroup label="Seleccionar punto específico">
+          ${pointOptions}
+        </optgroup>
+      `;
+      if ([...regSel.options].some(o => o.value === curReg)) {
+        regSel.value = curReg;
+      }
+
       const distSel = document.getElementById('filterDistrito');
       const curDist = distSel.value;
       const dists = [...new Set(records.map(r => r.distrito).filter(v => v !== ''))].sort((a, b) => a - b);
@@ -1329,6 +1350,10 @@
       updateFilterOptions();
       const filtered = getFilteredRecords();
       renderSummaryMatrix(filtered);
+
+      if (filtered.length === 1) {
+        renderDetail(filtered[0]);
+      }
 
       const totalPuntos = filtered.length;
       const conGps = filtered.filter(r => r.lat !== null && r.lng !== null).length;
