@@ -722,6 +722,7 @@
     let countsBackup = {};
     let lastRawSample = null;
     let isAdminUnlocked = false;
+    let manualDistritoSelected = false;
 
     function applyAdminUiState() {
       const toolsEl = document.getElementById('adminTools');
@@ -1174,6 +1175,47 @@
       return '#10b981';
     }
 
+    function findRelatedDistrito(rec) {
+      if (!rec) return '';
+      if (rec.distrito !== '' && rec.distrito !== undefined && rec.distrito !== null) {
+        return String(rec.distrito);
+      }
+      const lugarNorm = String(rec.lugar || '').trim().toLowerCase();
+      if (lugarNorm) {
+        const sameLugar = records.find(
+          r => r.id !== rec.id &&
+               String(r.lugar || '').trim().toLowerCase() === lugarNorm &&
+               r.distrito !== '' && r.distrito !== undefined && r.distrito !== null
+        );
+        if (sameLugar) return String(sameLugar.distrito);
+      }
+      if (rec.lat !== null && rec.lng !== null) {
+        let bestDist = Infinity;
+        let bestVal = '';
+        records.forEach(r => {
+          if (r.id === rec.id || r.lat === null || r.lng === null) return;
+          if (r.distrito === '' || r.distrito === undefined || r.distrito === null) return;
+          const dLat = r.lat - rec.lat;
+          const dLng = r.lng - rec.lng;
+          const approxDegDist = Math.hypot(dLat, dLng);
+          if (approxDegDist < 0.003 && approxDegDist < bestDist) {
+            bestDist = approxDegDist;
+            bestVal = String(r.distrito);
+          }
+        });
+        if (bestVal) return bestVal;
+      }
+      return '';
+    }
+
+    function getEffectiveDistrito(rec) {
+      if (!rec) return '';
+      if (rec.distrito !== '' && rec.distrito !== undefined && rec.distrito !== null) {
+        return String(rec.distrito);
+      }
+      return findRelatedDistrito(rec);
+    }
+
     function renderDetail(rec) {
       const box = document.getElementById('detailCard');
       if (!rec) {
@@ -1186,6 +1228,10 @@
       const gpsText = (rec.lat !== null && rec.lng !== null) ? `${rec.lat}, ${rec.lng}` : 'Sin GPS';
       const esBase = isBaseRecord(rec);
       const cleanObs = stripBaseDesgloseTag(rec.observaciones);
+      const efectivoDist = getEffectiveDistrito(rec);
+      const distLabel = efectivoDist
+        ? (rec.distrito === '' || rec.distrito === undefined || rec.distrito === null ? `${efectivoDist} (por punto cercano)` : efectivoDist)
+        : '-';
 
       let unidadesHtml = `<strong>Unidades:</strong> ${rec.operativas} operable · ${rec.noOperativas} inoperable<br/>`;
       if (esBase) {
@@ -1199,7 +1245,7 @@
 
       box.innerHTML = `
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
-        <div class="sync-status">${esBase ? 'Base de Operaciones (Garaje)' : 'Punto de Zona'} · Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
+        <div class="sync-status">${esBase ? 'Base de Operaciones (Garaje)' : 'Punto de Zona'} · Distrito: ${distLabel} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
         <div style="margin-top:8px; font-size:0.86rem; line-height:1.5;">
           ${unidadesHtml}
           <strong>Total unidades:</strong> ${totalUnid}<br/>
@@ -1289,6 +1335,31 @@
       tbody.innerHTML = rowsHtml + totalRowHtml;
     }
 
+    function autoConnectDistritoFromSelection() {
+      const distSel = document.getElementById('filterDistrito');
+      if (manualDistritoSelected || distSel.value !== '') return;
+
+      const reg = document.getElementById('filterRegistro').value;
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+
+      let matchedPoint = null;
+      if (reg && reg !== '__zona__' && reg !== '__base__') {
+        matchedPoint = records.find(r => r.id === reg) || null;
+      } else if (q.length >= 2) {
+        const bySearch = records.filter(
+          r => r.id.toLowerCase().includes(q) || r.lugar.toLowerCase().includes(q)
+        );
+        if (bySearch.length === 1) matchedPoint = bySearch[0];
+      }
+
+      if (matchedPoint) {
+        const connectedDist = getEffectiveDistrito(matchedPoint);
+        if (connectedDist && [...distSel.options].some(o => o.value === connectedDist)) {
+          distSel.value = connectedDist;
+        }
+      }
+    }
+
     function getFilteredRecords() {
       const q = document.getElementById('searchInput').value.trim().toLowerCase();
       const reg = document.getElementById('filterRegistro').value;
@@ -1303,7 +1374,7 @@
         if (reg === '__zona__' && esBase) return false;
         else if (reg === '__base__' && !esBase) return false;
         else if (reg && reg !== '__zona__' && reg !== '__base__' && r.id !== reg) return false;
-        if (dist && String(r.distrito) !== dist) return false;
+        if (dist && getEffectiveDistrito(r) !== dist) return false;
         if (tipo && !esBase && normalizeType(r.tipo) !== tipo) return false;
         if (unid === 'con_standby' && r.standBy <= 0) return false;
         if (unid === 'con_reparacion' && r.reparacion <= 0) return false;
@@ -1341,13 +1412,16 @@
 
       const distSel = document.getElementById('filterDistrito');
       const curDist = distSel.value;
-      const dists = [...new Set(records.map(r => r.distrito).filter(v => v !== ''))].sort((a, b) => a - b);
+      const dists = [...new Set(records.map(r => getEffectiveDistrito(r)).filter(v => v !== ''))].sort((a, b) => Number(a) - Number(b));
       distSel.innerHTML = '<option value="">Todos los Distritos</option>' + dists.map(d => `<option value="${d}">${d}</option>`).join('');
-      distSel.value = curDist;
+      if ([...distSel.options].some(o => o.value === curDist)) {
+        distSel.value = curDist;
+      }
     }
 
     function render() {
       updateFilterOptions();
+      autoConnectDistritoFromSelection();
       const filtered = getFilteredRecords();
       renderSummaryMatrix(filtered);
 
@@ -1408,6 +1482,7 @@
         const estPillClass = getStatusPillClass(estCalc);
         const totalRow = calculateTotalUnits(r);
         const tipoCol = esBase ? '3 tipos (Garaje)' : r.tipo;
+        const distCol = getEffectiveDistrito(r) || '-';
         const unidBadge = esBase
           ? `<span class="pill pill-base">${r.standBy} SB / ${r.reparacion} Rep</span>`
           : `<span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} inop</span>`;
@@ -1415,7 +1490,7 @@
           <tr>
             <td><strong>${r.id}</strong></td>
             <td>${r.lugar} ${esBase ? '<span class="pill pill-base">BASE</span>' : ''}</td>
-            <td>${r.distrito}</td>
+            <td>${distCol}</td>
             <td>${tipoCol}</td>
             <td>${unidBadge}</td>
             <td><strong>${totalRow}</strong></td>
@@ -1881,8 +1956,25 @@
       reader.readAsText(file);
     });
 
-    ['searchInput', 'filterRegistro', 'filterDistrito', 'filterTipo', 'filterUnidades', 'filterGps'].forEach(id => {
-      document.getElementById(id).addEventListener('input', render);
+    document.getElementById('filterRegistro').addEventListener('change', () => {
+      manualDistritoSelected = false;
+      document.getElementById('filterDistrito').value = '';
+      render();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', () => {
+      if (!manualDistritoSelected) {
+        document.getElementById('filterDistrito').value = '';
+      }
+      render();
+    });
+
+    document.getElementById('filterDistrito').addEventListener('change', (e) => {
+      manualDistritoSelected = e.target.value !== '';
+      render();
+    });
+
+    ['filterTipo', 'filterUnidades', 'filterGps'].forEach(id => {
       document.getElementById(id).addEventListener('change', render);
     });
 
