@@ -17,30 +17,77 @@
       --warning: #f59e0b;
       --danger: #ef4444;
       --info: #3b82f6;
+      --base-accent: #8b5cf6;
     }
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
     body { margin: 0; background: var(--bg); color: var(--text); }
     header {
       background: #0b1120;
       border-bottom: 1px solid var(--border);
-      padding: 14px 20px;
+      padding: 12px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .header-top {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
     }
-    header h1 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+    header h1 { margin: 0; font-size: 1.12rem; display: flex; align-items: center; gap: 8px; }
     .badge-live {
       background: rgba(16, 185, 129, 0.15);
       color: var(--primary);
       padding: 3px 8px;
       border-radius: 999px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       border: 1px solid rgba(16, 185, 129, 0.4);
     }
-    .sync-status { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .badge-admin {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      display: none;
+    }
+    .badge-admin.active { display: inline-block; }
+    .sync-status { font-size: 0.78rem; color: var(--muted); }
+
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .field-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .admin-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      padding-left: 10px;
+      border-left: 1px solid var(--border);
+    }
+    .admin-tools {
+      display: none;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .admin-tools.unlocked {
+      display: inline-flex;
+    }
+
     button, .btn-link {
       background: var(--card);
       color: var(--text);
@@ -48,15 +95,57 @@
       padding: 8px 12px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       font-weight: 500;
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      transition: border-color 0.15s, background 0.15s, transform 0.08s;
     }
     button:hover { border-color: var(--muted); }
-    button.primary { background: var(--primary); border-color: var(--primary); color: #06281e; font-weight: 600; }
-    button.primary:hover { background: var(--primary-hover); }
+    button:active { transform: scale(0.99); }
+
+    button.btn-new-point {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #05251b;
+      font-weight: 700;
+      padding: 9px 14px;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
+    }
+    button.btn-new-point:hover { background: var(--primary-hover); }
+
+    button.btn-base-op {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(167, 139, 250, 0.65);
+      color: #ddd6fe;
+      font-weight: 700;
+      padding: 9px 14px;
+    }
+    button.btn-base-op:hover {
+      background: rgba(139, 92, 246, 0.32);
+      border-color: #c4b5fd;
+    }
+
+    button.btn-sync {
+      background: rgba(15, 23, 42, 0.85);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    button.btn-admin-toggle {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fcd34d;
+      font-size: 0.78rem;
+      padding: 6px 10px;
+    }
+    button.btn-admin-toggle.unlocked {
+      background: rgba(16, 185, 129, 0.16);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: #6ee7b7;
+    }
+
     button.info { background: rgba(59, 130, 246, 0.18); border-color: rgba(59, 130, 246, 0.5); color: #93c5fd; }
     button.gps-btn {
       margin-top: 6px;
@@ -198,8 +287,18 @@
     @media (max-width: 640px) {
       header { padding: 10px 12px; gap: 8px; }
       header h1 { font-size: 1rem; }
-      .toolbar { gap: 6px; }
-      button, .btn-link { padding: 6px 9px; font-size: 0.76rem; border-radius: 7px; }
+      .toolbar-row { flex-direction: column; align-items: stretch; gap: 8px; }
+      .field-actions { justify-content: space-between; }
+      .field-actions .btn-new-point,
+      .field-actions .btn-base-op { flex: 1 1 auto; justify-content: center; }
+      .admin-group {
+        padding-left: 0;
+        border-left: none;
+        padding-top: 6px;
+        border-top: 1px solid rgba(51, 65, 85, 0.6);
+        justify-content: space-between;
+      }
+      button, .btn-link { padding: 7px 10px; font-size: 0.78rem; border-radius: 7px; }
       .container { padding: 10px; }
       .summary-card { margin-bottom: 10px; border-radius: 8px; }
       .summary-table { font-size: 0.76rem; min-width: 520px; }
@@ -327,20 +426,37 @@
 </head>
 <body>
   <header>
-    <div>
-      <h1>🗑️ Control de Contenedores Piraí <span class="badge-live">EN LÍNEA</span></h1>
-      <div id="syncStatus" class="sync-status">Listo para sincronizar con Google Sheets</div>
+    <div class="header-top">
+      <div>
+        <h1>
+          🗑️ Control de Contenedores Piraí
+          <span class="badge-live">EN LÍNEA</span>
+          <span id="adminBadge" class="badge-admin">ADMIN ACTIVO</span>
+        </h1>
+        <div id="syncStatus" class="sync-status">Listo para sincronizar con Google Sheets</div>
+      </div>
     </div>
-    <div class="toolbar">
-      <button id="btnSync" type="button">🔄 Sincronizar</button>
-      <button id="btnDebug" type="button">🔍 Ver Crudo</button>
-      <button id="btnSeed" type="button">☁️ Subir Base a Nube</button>
-      <button id="btnNewBase" type="button">+ Base Operaciones</button>
-      <button id="btnNew" class="primary" type="button">+ Nuevo Punto</button>
-      <button id="btnCsv" class="info" type="button">📊 Exportar Excel (CSV)</button>
-      <button id="btnExportJson" type="button">💾 Respaldo JSON</button>
-      <button id="btnImportJson" type="button">📂 Cargar JSON</button>
-      <input id="fileJsonInput" type="file" accept=".json" style="display:none" />
+
+    <div class="toolbar-row">
+      <!-- Acciones principales del supervisor en zona -->
+      <div class="field-actions">
+        <button id="btnNew" class="btn-new-point" type="button">+ Nuevo Punto</button>
+        <button id="btnNewBase" class="btn-base-op" type="button">🏭 Base Operaciones</button>
+        <button id="btnSync" class="btn-sync" type="button">🔄 Sincronizar</button>
+      </div>
+
+      <!-- Controles exclusivos de administrador -->
+      <div class="admin-group">
+        <div id="adminTools" class="admin-tools">
+          <button id="btnSeed" type="button">☁️ Subir a Nube</button>
+          <button id="btnCsv" class="info" type="button">📊 Excel (CSV)</button>
+          <button id="btnExportJson" type="button">💾 Respaldo JSON</button>
+          <button id="btnImportJson" type="button">📂 Cargar JSON</button>
+          <button id="btnDebug" type="button">🔍 Ver Crudo</button>
+        </div>
+        <button id="btnAdminToggle" class="btn-admin-toggle" type="button">🔒 Admin</button>
+        <input id="fileJsonInput" type="file" accept=".json" style="display:none" />
+      </div>
     </div>
   </header>
 
@@ -588,6 +704,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbydlRNoUEwB9ncCWfZPtS1Co2Q3jWaX0KKdkOJ9KsJFtxCue5H4Urbg1aGFxDbDIrOZ/exec';
+    const ADMIN_PIN = '1688';
+    const ADMIN_SESSION_KEY = 'pirai_admin_unlocked_v1';
     const STORAGE_KEY = 'pirai_contenedores_v1';
     const PENDING_KEY = 'pirai_contenedores_pending_v1';
     const COUNTS_BACKUP_KEY = 'pirai_contenedores_last_counts_v1';
@@ -605,6 +723,45 @@
     let pendingMap = {};
     let countsBackup = {};
     let lastRawSample = null;
+    let isAdminUnlocked = false;
+
+    function applyAdminUiState() {
+      const toolsEl = document.getElementById('adminTools');
+      const toggleBtn = document.getElementById('btnAdminToggle');
+      const badgeEl = document.getElementById('adminBadge');
+
+      if (isAdminUnlocked) {
+        toolsEl.classList.add('unlocked');
+        toggleBtn.classList.add('unlocked');
+        toggleBtn.textContent = '🔓 Bloquear Admin';
+        badgeEl.classList.add('active');
+      } else {
+        toolsEl.classList.remove('unlocked');
+        toggleBtn.classList.remove('unlocked');
+        toggleBtn.textContent = '🔒 Admin';
+        badgeEl.classList.remove('active');
+      }
+    }
+
+    function handleAdminToggle() {
+      if (isAdminUnlocked) {
+        isAdminUnlocked = false;
+        sessionStorage.removeItem(ADMIN_SESSION_KEY);
+        applyAdminUiState();
+        setStatus('Modo administrador bloqueado.');
+        return;
+      }
+      const entered = prompt('Ingresa el PIN de administrador:');
+      if (entered === null) return;
+      if (String(entered).trim() === ADMIN_PIN) {
+        isAdminUnlocked = true;
+        sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+        applyAdminUiState();
+        setStatus('Modo administrador activado para esta sesión.');
+      } else {
+        setStatus('PIN de administrador incorrecto.', true);
+      }
+    }
 
     function setStatus(msg, isError = false) {
       const el = document.getElementById('syncStatus');
@@ -1409,13 +1566,14 @@
     }
 
     async function seedToSheets() {
+      if (!isAdminUnlocked) return;
       if (!records.length) {
         setStatus('No hay registros para subir. Carga o agrega puntos primero.', true);
         return;
       }
 
       const firstOk = confirm(
-        '⚠️ ATENCIÓN: "Subir Base a Nube" reemplazará los datos de la hoja en Google Sheets con los ' +
+        '⚠️ ATENCIÓN: "Subir a Nube" reemplazará los datos de la hoja en Google Sheets con los ' +
         records.length + ' registros cargados en este dispositivo.\n\n' +
         'Para editar o crear puntos en campo normalmente solo debes usar "Guardar y Sincronizar".\n\n' +
         '¿Deseas continuar?'
@@ -1510,6 +1668,7 @@
     }
 
     function openDebugModal() {
+      if (!isAdminUnlocked) return;
       const sampleWithoutPhoto = lastRawSample
         ? Object.fromEntries(
             Object.entries(lastRawSample).map(([k, v]) => [
@@ -1530,6 +1689,7 @@
       document.getElementById('debugBackdrop').classList.add('open');
     }
 
+    document.getElementById('btnAdminToggle').addEventListener('click', handleAdminToggle);
     document.getElementById('fEsBase').addEventListener('change', toggleBaseFieldsVisibility);
     document.getElementById('btnDebug').addEventListener('click', openDebugModal);
     document.getElementById('btnCloseDebug').addEventListener('click', () => {
@@ -1647,6 +1807,7 @@
     document.getElementById('btnSeed').addEventListener('click', seedToSheets);
 
     document.getElementById('btnCsv').addEventListener('click', () => {
+      if (!isAdminUnlocked) return;
       const headers = ['ID','LUGAR','DISTRITO','OPERABLES','INOPERABLES','STAND BY (EN BASE)','REPARACION (EN BASE/TALLER)','TOTAL','TIPO','LAT','LNG','ESTADO','SUPERVISOR','OBSERVACIONES','FOTO','ULTIMA ACTUALIZACIÓN'];
       const rows = records.map(r => [
         r.id, r.lugar, r.distrito, r.operativas, r.noOperativas, r.standBy, r.reparacion,
@@ -1661,6 +1822,7 @@
     });
 
     document.getElementById('btnExportJson').addEventListener('click', () => {
+      if (!isAdminUnlocked) return;
       const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1669,10 +1831,12 @@
     });
 
     document.getElementById('btnImportJson').addEventListener('click', () => {
+      if (!isAdminUnlocked) return;
       document.getElementById('fileJsonInput').click();
     });
 
     document.getElementById('fileJsonInput').addEventListener('change', (e) => {
+      if (!isAdminUnlocked) return;
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -1697,6 +1861,8 @@
       document.getElementById(id).addEventListener('change', render);
     });
 
+    isAdminUnlocked = sessionStorage.getItem(ADMIN_SESSION_KEY) === '1';
+    applyAdminUiState();
     initMap();
     countsBackup = loadCountsBackup();
     pendingMap = loadPending();
