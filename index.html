@@ -266,7 +266,7 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       width: 100%;
-      max-width: 560px;
+      max-width: 580px;
       max-height: 90vh;
       overflow-y: auto;
       padding: 18px;
@@ -275,21 +275,37 @@
     .form-grid .full { grid-column: 1 / -1; }
     .base-panel {
       grid-column: 1 / -1;
-      background: rgba(15, 23, 42, 0.65);
+      background: rgba(15, 23, 42, 0.72);
       border: 1px dashed #6366f1;
       border-radius: 10px;
       padding: 12px;
     }
     .base-panel-title {
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 700;
       color: #c4b5fd;
       margin-bottom: 8px;
     }
-    .base-panel-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .base-matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+    .base-matrix-table th,
+    .base-matrix-table td {
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      white-space: normal;
+    }
+    .base-matrix-table th {
+      background: #162032;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+    .base-matrix-table input {
+      padding: 6px 8px;
+      font-size: 0.82rem;
     }
     label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
@@ -467,36 +483,55 @@
             <label>Distrito</label>
             <input id="fDistrito" type="number" />
           </div>
-          <div>
+          <div id="zonaTipoField">
             <label>Tipo de Contenedor</label>
-            <select id="fTipo" required>
+            <select id="fTipo">
               <option value="">Selecciona un tipo...</option>
               <option value="contenedor 1.5 m3">contenedor 1.5 m3</option>
               <option value="contenedor 10 m3">contenedor 10 m3</option>
               <option value="caja autocompactadora">caja autocompactadora</option>
             </select>
           </div>
-          <div>
-            <label>Operables</label>
-            <input id="fOperativas" type="number" min="0" value="0" />
-          </div>
-          <div>
-            <label>Inoperables</label>
-            <input id="fNoOperativas" type="number" min="0" value="0" />
+
+          <div id="zonaFieldsGroup" style="display:contents">
+            <div>
+              <label>Operables</label>
+              <input id="fOperativas" type="number" min="0" value="0" />
+            </div>
+            <div>
+              <label>Inoperables</label>
+              <input id="fNoOperativas" type="number" min="0" value="0" />
+            </div>
           </div>
 
           <div id="baseFieldsPanel" class="base-panel" style="display:none">
-            <div class="base-panel-title">🏭 Base de Operaciones — Stand by y Reparación</div>
-            <div class="base-panel-grid">
-              <div>
-                <label>Stand by (en base)</label>
-                <input id="fStandBy" type="number" min="0" value="0" />
-              </div>
-              <div>
-                <label>Reparación (en base/taller)</label>
-                <input id="fReparacion" type="number" min="0" value="0" />
-              </div>
-            </div>
+            <div class="base-panel-title">🏭 Garaje / Base de Operaciones — Stand by y Reparación por Tipo</div>
+            <table class="base-matrix-table">
+              <thead>
+                <tr>
+                  <th>Tipo de Contenedor</th>
+                  <th>Stand by (en base)</th>
+                  <th>Reparación (en base/taller)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>contenedor 1.5 m3</strong></td>
+                  <td><input id="sb_1_5" type="number" min="0" value="0" /></td>
+                  <td><input id="rep_1_5" type="number" min="0" value="0" /></td>
+                </tr>
+                <tr>
+                  <td><strong>contenedor 10 m3</strong></td>
+                  <td><input id="sb_10" type="number" min="0" value="0" /></td>
+                  <td><input id="rep_10" type="number" min="0" value="0" /></td>
+                </tr>
+                <tr>
+                  <td><strong>caja autocompactadora</strong></td>
+                  <td><input id="sb_ac" type="number" min="0" value="0" /></td>
+                  <td><input id="rep_ac" type="number" min="0" value="0" /></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           <div class="full">
@@ -605,14 +640,60 @@
         lugarStr === 'BASE DE OPERACIONES' ||
         lugarStr.includes('BASE DE OPERACIONES') ||
         lugarStr.includes('BASE OPERACIONES') ||
-        obsStr.includes('[BASE]')
+        lugarStr.includes('GARAJE') ||
+        obsStr.includes('[BASE]') ||
+        obsStr.includes('[BASE_DESGLOSE:')
       );
+    }
+
+    function emptyBaseDesglose() {
+      return {
+        'contenedor 1.5 m3': { sb: 0, rep: 0 },
+        'contenedor 10 m3': { sb: 0, rep: 0 },
+        'caja autocompactadora': { sb: 0, rep: 0 }
+      };
+    }
+
+    function extractBaseDesgloseFromObs(obs) {
+      const result = emptyBaseDesglose();
+      if (!obs) return result;
+      const match = String(obs).match(/\[BASE_DESGLOSE:([^\]]+)\]/);
+      if (!match) return result;
+      try {
+        const parsed = JSON.parse(decodeURIComponent(match[1]));
+        ALLOWED_TYPES.forEach(t => {
+          if (parsed && parsed[t]) {
+            result[t] = {
+              sb: parseNum(parsed[t].sb),
+              rep: parseNum(parsed[t].rep)
+            };
+          }
+        });
+      } catch (e) {}
+      return result;
+    }
+
+    function stripBaseDesgloseTag(obs) {
+      return String(obs || '').replace(/\s*\[BASE_DESGLOSE:[^\]]+\]\s*/g, '').trim();
+    }
+
+    function attachBaseDesgloseTag(obs, desglose, standByTotal, reparacionTotal) {
+      const cleanObs = stripBaseDesgloseTag(obs);
+      const hasAny = ALLOWED_TYPES.some(t => parseNum(desglose[t]?.sb) > 0 || parseNum(desglose[t]?.rep) > 0);
+      if (!hasAny && (standByTotal > 0 || reparacionTotal > 0)) {
+        desglose['contenedor 1.5 m3'] = { sb: standByTotal, rep: reparacionTotal };
+      }
+      const encoded = encodeURIComponent(JSON.stringify(desglose));
+      return cleanObs ? `${cleanObs} [BASE_DESGLOSE:${encoded}]` : `[BASE_DESGLOSE:${encoded}]`;
     }
 
     function toggleBaseFieldsVisibility() {
       const isBase = document.getElementById('fEsBase').value === '1';
       document.getElementById('baseFieldsPanel').style.display = isBase ? 'block' : 'none';
+      document.getElementById('zonaFieldsGroup').style.display = isBase ? 'none' : 'contents';
+      document.getElementById('zonaTipoField').style.display = isBase ? 'none' : 'block';
       document.getElementById('fId').required = !isBase;
+      document.getElementById('fTipo').required = !isBase;
     }
 
     function loadCountsBackup() {
@@ -638,12 +719,13 @@
       const noOp = parseNum(rec.noOperativas);
       const sb = parseNum(rec.standBy);
       const rep = parseNum(rec.reparacion);
-      if (op > 0 || noOp > 0 || sb > 0 || rep > 0) {
+      if (op > 0 || noOp > 0 || sb > 0 || rep > 0 || rec.baseDesglose) {
         countsBackup[rec.id] = {
           operativas: op,
           noOperativas: noOp,
           standBy: sb,
           reparacion: rep,
+          baseDesglose: rec.baseDesglose || null,
           updatedAt: Date.now()
         };
         saveCountsBackup();
@@ -667,15 +749,16 @@
 
       if (noOp > 0 && op === 0) return 'No Operativo';
       if (noOp > 0 && op > 0) return 'Con Novedad';
+      if (rep > 0 && sb > 0) return 'Stand by / Reparación';
       if (rep > 0) return 'En Reparación';
-      if (op === 0 && sb > 0) return 'Stand by / Relevo';
+      if (sb > 0) return 'Stand by';
       return 'Operativo';
     }
 
     function getStatusPillClass(estadoCalc) {
       if (estadoCalc === 'No Operativo') return 'pill-bad';
-      if (estadoCalc === 'Con Novedad' || estadoCalc === 'En Reparación') return 'pill-warn';
-      if (estadoCalc === 'Stand by / Relevo') return 'pill-info';
+      if (estadoCalc === 'Con Novedad' || estadoCalc === 'En Reparación' || estadoCalc === 'Stand by / Reparación') return 'pill-warn';
+      if (estadoCalc === 'Stand by') return 'pill-info';
       return 'pill-ok';
     }
 
@@ -730,7 +813,7 @@
             if (!Number.isNaN(n) && n > maxBase) maxBase = n;
           }
         });
-        return `BASE-${String(maxBase + 1).padStart(3, '0')}`;
+        return `BASE-${String(maxBase + 1).padStart(2, '0')}`;
       }
 
       let maxNum = 0;
@@ -818,6 +901,12 @@
       const idClean = String(raw.id ?? raw.ID ?? '').trim();
       const lugarClean = String(raw.lugar ?? raw.LUGAR ?? '').trim();
       const effectiveId = idClean || lugarClean;
+      const obsRaw = String(raw.observaciones ?? raw.OBSERVACIONES ?? '').trim();
+
+      let baseDesglose = raw.baseDesglose || null;
+      if (!baseDesglose && obsRaw.includes('[BASE_DESGLOSE:')) {
+        baseDesglose = extractBaseDesgloseFromObs(obsRaw);
+      }
 
       const base = {
         id: effectiveId,
@@ -828,11 +917,12 @@
         noOperativas: noOp,
         standBy,
         reparacion,
+        baseDesglose,
         tipo: normalizeType(raw.tipo ?? raw.TIPO ?? ''),
         lat,
         lng,
         supervisor: String(raw.supervisor ?? raw.SUPERVISOR ?? '').trim(),
-        observaciones: String(raw.observaciones ?? raw.OBSERVACIONES ?? '').trim(),
+        observaciones: obsRaw,
         foto: String(raw.foto ?? raw.FOTO ?? '').trim(),
         ultimaActualizacion: String(raw.ultimaActualizacion ?? raw['ULTIMA ACTUALIZACIÓN'] ?? '').trim()
       };
@@ -940,18 +1030,27 @@
       const imgHtml = rec.foto ? `<img src="${rec.foto}" alt="${rec.lugar}" onerror="this.style.display='none'" />` : '';
       const gpsText = (rec.lat !== null && rec.lng !== null) ? `${rec.lat}, ${rec.lng}` : 'Sin GPS';
       const esBase = isBaseRecord(rec);
-      const unidadesHtml = esBase
-        ? `<strong>Base de Operaciones:</strong> ${rec.standBy} stand by · ${rec.reparacion} reparación<br/>`
-        : `<strong>Unidades:</strong> ${rec.operativas} operable · ${rec.noOperativas} inoperable<br/>`;
+      const cleanObs = stripBaseDesgloseTag(rec.observaciones);
+
+      let unidadesHtml = `<strong>Unidades:</strong> ${rec.operativas} operable · ${rec.noOperativas} inoperable<br/>`;
+      if (esBase) {
+        const desg = rec.baseDesglose || extractBaseDesgloseFromObs(rec.observaciones);
+        const lines = ALLOWED_TYPES.map(t => {
+          const d = desg[t] || { sb: 0, rep: 0 };
+          return `${t}: ${d.sb} SB / ${d.rep} Rep`;
+        }).join(' · ');
+        unidadesHtml = `<strong>Base / Garaje:</strong> ${rec.standBy} stand by · ${rec.reparacion} reparación<br/><span style="color:var(--muted);font-size:0.8rem">${lines}</span><br/>`;
+      }
+
       box.innerHTML = `
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
-        <div class="sync-status">${esBase ? 'Base de Operaciones' : 'Punto de Zona'} · Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
+        <div class="sync-status">${esBase ? 'Base de Operaciones (Garaje)' : 'Punto de Zona'} · Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
         <div style="margin-top:8px; font-size:0.86rem; line-height:1.5;">
           ${unidadesHtml}
           <strong>Total unidades:</strong> ${totalUnid}<br/>
           <strong>GPS:</strong> ${gpsText}<br/>
           <strong>Supervisor:</strong> ${rec.supervisor || '-'}<br/>
-          <strong>Observaciones:</strong> ${rec.observaciones || '-'}
+          <strong>Observaciones:</strong> ${cleanObs || '-'}
         </div>
         ${imgHtml}
       `;
@@ -966,6 +1065,26 @@
       };
 
       filtered.forEach(r => {
+        if (isBaseRecord(r)) {
+          const desg = r.baseDesglose || extractBaseDesgloseFromObs(r.observaciones);
+          const sumSb = ALLOWED_TYPES.reduce((a, t) => a + parseNum(desg[t]?.sb), 0);
+          const sumRep = ALLOWED_TYPES.reduce((a, t) => a + parseNum(desg[t]?.rep), 0);
+
+          if (sumSb > 0 || sumRep > 0) {
+            ALLOWED_TYPES.forEach(t => {
+              byType[t].sb += parseNum(desg[t]?.sb);
+              byType[t].rep += parseNum(desg[t]?.rep);
+            });
+          } else {
+            const key = normalizeType(r.tipo);
+            if (byType[key]) {
+              byType[key].sb += parseNum(r.standBy);
+              byType[key].rep += parseNum(r.reparacion);
+            }
+          }
+          return;
+        }
+
         const key = normalizeType(r.tipo);
         if (!byType[key]) return;
         byType[key].op += parseNum(r.operativas);
@@ -1029,7 +1148,7 @@
         if (reg === 'zona' && esBase) return false;
         if (reg === 'base' && !esBase) return false;
         if (dist && String(r.distrito) !== dist) return false;
-        if (tipo && normalizeType(r.tipo) !== tipo) return false;
+        if (tipo && !esBase && normalizeType(r.tipo) !== tipo) return false;
         if (unid === 'con_standby' && r.standBy <= 0) return false;
         if (unid === 'con_reparacion' && r.reparacion <= 0) return false;
         if (unid === 'con_no_op' && r.noOperativas <= 0) return false;
@@ -1106,6 +1225,7 @@
         const estCalc = calculateStatus(r);
         const estPillClass = getStatusPillClass(estCalc);
         const totalRow = calculateTotalUnits(r);
+        const tipoCol = esBase ? '3 tipos (Garaje)' : r.tipo;
         const unidBadge = esBase
           ? `<span class="pill pill-base">${r.standBy} SB / ${r.reparacion} Rep</span>`
           : `<span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} inop</span>`;
@@ -1114,7 +1234,7 @@
             <td><strong>${r.id}</strong></td>
             <td>${r.lugar} ${esBase ? '<span class="pill pill-base">BASE</span>' : ''}</td>
             <td>${r.distrito}</td>
-            <td>${r.tipo}</td>
+            <td>${tipoCol}</td>
             <td>${unidBadge}</td>
             <td><strong>${totalRow}</strong></td>
             <td>${hasGps ? '📍 Sí' : '—'}</td>
@@ -1166,12 +1286,15 @@
           ? refLocal.reparacion
           : norm.reparacion;
 
+        const mergedDesglose = norm.baseDesglose || (refLocal && refLocal.baseDesglose) || null;
+
         const merged = {
           ...norm,
           operativas: finalOp,
           noOperativas: finalNoOp,
           standBy: finalStandBy,
           reparacion: finalRep,
+          baseDesglose: mergedDesglose,
           lat: serverHasGps ? norm.lat : (refHasGps ? refLocal.lat : null),
           lng: serverHasGps ? norm.lng : (refHasGps ? refLocal.lng : null),
           foto: keepLocalPhoto ? refLocal.foto : norm.foto
@@ -1333,8 +1456,8 @@
       setGpsMsg('');
       setPhotoMsg('');
       document.getElementById('modalTitle').textContent = rec
-        ? (esBase ? `Editar Base ${rec.id}` : `Editar Punto ${rec.id}`)
-        : (esBase ? 'Base de Operaciones' : 'Nuevo Punto de Contenedores');
+        ? (esBase ? `Editar Base / Garaje ${rec.id}` : `Editar Punto ${rec.id}`)
+        : (esBase ? 'Base de Operaciones (Garaje)' : 'Nuevo Punto de Contenedores');
 
       document.getElementById('fId').value = suggestedId;
       document.getElementById('fEsBase').value = esBase ? '1' : '0';
@@ -1342,7 +1465,7 @@
 
       if (!rec) {
         hintEl.textContent = esBase
-          ? `Puedes dejar ${suggestedId}, cambiarlo o dejarlo vacío y usar "Base de Operaciones".`
+          ? `Garaje único: carga aquí Stand by y Reparación para los 3 tipos.`
           : `Correlativo sugerido automáticamente (${suggestedId}). Puedes editarlo si lo necesitas.`;
         hintEl.style.display = 'block';
       } else {
@@ -1350,19 +1473,35 @@
         hintEl.style.display = 'none';
       }
 
+      const desg = rec
+        ? (rec.baseDesglose || extractBaseDesgloseFromObs(rec.observaciones))
+        : emptyBaseDesglose();
+
+      if (rec && esBase && !rec.baseDesglose && !rec.observaciones.includes('[BASE_DESGLOSE:')) {
+        if (rec.standBy > 0 || rec.reparacion > 0) {
+          const tKey = normalizeType(rec.tipo);
+          desg[tKey] = { sb: rec.standBy, rep: rec.reparacion };
+        }
+      }
+
+      document.getElementById('sb_1_5').value = desg['contenedor 1.5 m3']?.sb ?? 0;
+      document.getElementById('rep_1_5').value = desg['contenedor 1.5 m3']?.rep ?? 0;
+      document.getElementById('sb_10').value = desg['contenedor 10 m3']?.sb ?? 0;
+      document.getElementById('rep_10').value = desg['contenedor 10 m3']?.rep ?? 0;
+      document.getElementById('sb_ac').value = desg['caja autocompactadora']?.sb ?? 0;
+      document.getElementById('rep_ac').value = desg['caja autocompactadora']?.rep ?? 0;
+
       document.getElementById('fDistrito').value = rec ? rec.distrito : '';
       document.getElementById('fLugar').value = rec ? rec.lugar : (esBase ? 'Base de Operaciones' : '');
       document.getElementById('fTipo').value = rec ? normalizeType(rec.tipo) : 'contenedor 1.5 m3';
       document.getElementById('fOperativas').value = rec ? rec.operativas : 0;
       document.getElementById('fNoOperativas').value = rec ? rec.noOperativas : 0;
-      document.getElementById('fStandBy').value = rec ? rec.standBy : 0;
-      document.getElementById('fReparacion').value = rec ? rec.reparacion : 0;
       document.getElementById('fLat').value = rec && rec.lat !== null ? rec.lat : '';
       document.getElementById('fLng').value = rec && rec.lng !== null ? rec.lng : '';
       document.getElementById('fSupervisor').value = rec ? rec.supervisor : '';
       document.getElementById('fFoto').value = rec ? rec.foto : '';
       document.getElementById('fFotoFile').value = '';
-      document.getElementById('fObservaciones').value = rec ? rec.observaciones : '';
+      document.getElementById('fObservaciones').value = rec ? stripBaseDesgloseTag(rec.observaciones) : '';
       document.getElementById('modalBackdrop').classList.add('open');
     }
 
@@ -1415,13 +1554,39 @@
 
     document.getElementById('pointForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const tipoFinal = normalizeType(document.getElementById('fTipo').value);
       const esBase = document.getElementById('fEsBase').value === '1';
 
-      const op = Number(document.getElementById('fOperativas').value) || 0;
-      const noOp = Number(document.getElementById('fNoOperativas').value) || 0;
-      const standBy = esBase ? (Number(document.getElementById('fStandBy').value) || 0) : 0;
-      const reparacion = esBase ? (Number(document.getElementById('fReparacion').value) || 0) : 0;
+      let op = 0;
+      let noOp = 0;
+      let standBy = 0;
+      let reparacion = 0;
+      let baseDesglose = null;
+      let tipoFinal = normalizeType(document.getElementById('fTipo').value);
+      let obsFinal = document.getElementById('fObservaciones').value.trim();
+
+      if (esBase) {
+        baseDesglose = {
+          'contenedor 1.5 m3': {
+            sb: Number(document.getElementById('sb_1_5').value) || 0,
+            rep: Number(document.getElementById('rep_1_5').value) || 0
+          },
+          'contenedor 10 m3': {
+            sb: Number(document.getElementById('sb_10').value) || 0,
+            rep: Number(document.getElementById('rep_10').value) || 0
+          },
+          'caja autocompactadora': {
+            sb: Number(document.getElementById('sb_ac').value) || 0,
+            rep: Number(document.getElementById('rep_ac').value) || 0
+          }
+        };
+        standBy = ALLOWED_TYPES.reduce((acc, t) => acc + baseDesglose[t].sb, 0);
+        reparacion = ALLOWED_TYPES.reduce((acc, t) => acc + baseDesglose[t].rep, 0);
+        tipoFinal = 'contenedor 1.5 m3';
+        obsFinal = attachBaseDesgloseTag(obsFinal, baseDesglose, standBy, reparacion);
+      } else {
+        op = Number(document.getElementById('fOperativas').value) || 0;
+        noOp = Number(document.getElementById('fNoOperativas').value) || 0;
+      }
 
       const latRaw = document.getElementById('fLat').value.trim();
       const lngRaw = document.getElementById('fLng').value.trim();
@@ -1440,11 +1605,12 @@
         noOperativas: noOp,
         standBy,
         reparacion,
+        baseDesglose,
         tipo: tipoFinal,
         lat: latRaw === '' ? null : Number(latRaw),
         lng: lngRaw === '' ? null : Number(lngRaw),
         supervisor: document.getElementById('fSupervisor').value.trim(),
-        observaciones: document.getElementById('fObservaciones').value.trim(),
+        observaciones: obsFinal,
         foto: document.getElementById('fFoto').value.trim(),
         ultimaActualizacion: new Date().toLocaleString()
       });
@@ -1485,7 +1651,7 @@
       const rows = records.map(r => [
         r.id, r.lugar, r.distrito, r.operativas, r.noOperativas, r.standBy, r.reparacion,
         calculateTotalUnits(r), r.tipo, r.lat ?? '', r.lng ?? '', calculateStatus(r),
-        r.supervisor, r.observaciones, r.foto, r.ultimaActualizacion
+        r.supervisor, stripBaseDesgloseTag(r.observaciones), r.foto, r.ultimaActualizacion
       ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
       const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
