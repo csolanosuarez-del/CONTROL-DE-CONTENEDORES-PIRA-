@@ -452,8 +452,8 @@
       <form id="pointForm">
         <div class="form-grid">
           <div>
-            <label>ID</label>
-            <input id="fId" required />
+            <label>ID (opcional en Base de Operaciones)</label>
+            <input id="fId" />
             <div id="fIdHint" class="hint-inline" style="display:none"></div>
           </div>
           <div>
@@ -486,7 +486,7 @@
           </div>
 
           <div id="baseFieldsPanel" class="base-panel" style="display:none">
-            <div class="base-panel-title">🏭 Control en Base de Operaciones</div>
+            <div class="base-panel-title">🏭 Base de Operaciones — Stand by y Reparación</div>
             <div class="base-panel-grid">
               <div>
                 <label>Stand by (en base)</label>
@@ -598,11 +598,11 @@
     function isBaseRecord(rec) {
       if (!rec) return false;
       const idStr = String(rec.id || '').trim().toUpperCase();
-      const lugarStr = String(rec.lugar || '').toUpperCase();
+      const lugarStr = String(rec.lugar || '').trim().toUpperCase();
       const obsStr = String(rec.observaciones || '').toUpperCase();
       return (
-        idStr.startsWith('BASE-') ||
-        idStr === 'BASE' ||
+        idStr.startsWith('BASE') ||
+        lugarStr === 'BASE DE OPERACIONES' ||
         lugarStr.includes('BASE DE OPERACIONES') ||
         lugarStr.includes('BASE OPERACIONES') ||
         obsStr.includes('[BASE]')
@@ -612,6 +612,7 @@
     function toggleBaseFieldsVisibility() {
       const isBase = document.getElementById('fEsBase').value === '1';
       document.getElementById('baseFieldsPanel').style.display = isBase ? 'block' : 'none';
+      document.getElementById('fId').required = !isBase;
     }
 
     function loadCountsBackup() {
@@ -738,7 +739,7 @@
 
       records.forEach(r => {
         const rawId = String(r.id || '').trim();
-        if (/^BASE-/i.test(rawId)) return;
+        if (/^BASE/i.test(rawId)) return;
         const match = rawId.match(/^(.*?)(\d+)$/);
         if (match) {
           const num = parseInt(match[2], 10);
@@ -814,10 +815,13 @@
       const lng = Number.isNaN(lngNum) ? null : lngNum;
 
       const distRaw = raw.distrito ?? raw.DISTRITO;
+      const idClean = String(raw.id ?? raw.ID ?? '').trim();
+      const lugarClean = String(raw.lugar ?? raw.LUGAR ?? '').trim();
+      const effectiveId = idClean || lugarClean;
 
       const base = {
-        id: String(raw.id ?? raw.ID ?? '').trim(),
-        lugar: String(raw.lugar ?? raw.LUGAR ?? '').trim(),
+        id: effectiveId,
+        lugar: lugarClean || idClean,
         distrito: distRaw === '' || distRaw === undefined || distRaw === null ? '' : Number(distRaw),
         cantidad: cant,
         operativas: op,
@@ -937,7 +941,7 @@
       const gpsText = (rec.lat !== null && rec.lng !== null) ? `${rec.lat}, ${rec.lng}` : 'Sin GPS';
       const esBase = isBaseRecord(rec);
       const unidadesHtml = esBase
-        ? `<strong>Base / Taller:</strong> ${rec.standBy} stand by · ${rec.reparacion} reparación<br/>`
+        ? `<strong>Base de Operaciones:</strong> ${rec.standBy} stand by · ${rec.reparacion} reparación<br/>`
         : `<strong>Unidades:</strong> ${rec.operativas} operable · ${rec.noOperativas} inoperable<br/>`;
       box.innerHTML = `
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
@@ -1330,14 +1334,16 @@
       setPhotoMsg('');
       document.getElementById('modalTitle').textContent = rec
         ? (esBase ? `Editar Base ${rec.id}` : `Editar Punto ${rec.id}`)
-        : (esBase ? 'Nueva Base de Operaciones' : 'Nuevo Punto de Contenedores');
+        : (esBase ? 'Base de Operaciones' : 'Nuevo Punto de Contenedores');
 
       document.getElementById('fId').value = suggestedId;
       document.getElementById('fEsBase').value = esBase ? '1' : '0';
       toggleBaseFieldsVisibility();
 
       if (!rec) {
-        hintEl.textContent = `Correlativo sugerido automáticamente (${suggestedId}). Puedes editarlo si lo necesitas.`;
+        hintEl.textContent = esBase
+          ? `Puedes dejar ${suggestedId}, cambiarlo o dejarlo vacío y usar "Base de Operaciones".`
+          : `Correlativo sugerido automáticamente (${suggestedId}). Puedes editarlo si lo necesitas.`;
         hintEl.style.display = 'block';
       } else {
         hintEl.textContent = '';
@@ -1420,9 +1426,14 @@
       const latRaw = document.getElementById('fLat').value.trim();
       const lngRaw = document.getElementById('fLng').value.trim();
 
+      const rawIdInput = document.getElementById('fId').value.trim();
+      const rawLugarInput = document.getElementById('fLugar').value.trim();
+      const finalId = rawIdInput || (esBase ? (rawLugarInput || 'Base de Operaciones') : '');
+      const finalLugar = rawLugarInput || (esBase ? 'Base de Operaciones' : finalId);
+
       const updated = normalizeRecord({
-        id: document.getElementById('fId').value.trim(),
-        lugar: document.getElementById('fLugar').value.trim(),
+        id: finalId,
+        lugar: finalLugar,
         distrito: document.getElementById('fDistrito').value.trim(),
         cantidad: op + noOp + standBy + reparacion,
         operativas: op,
