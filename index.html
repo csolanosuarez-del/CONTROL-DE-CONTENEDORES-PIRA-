@@ -142,12 +142,12 @@
     .kpi .sub { font-size: 0.75rem; color: var(--muted); }
     .filters {
       display: grid;
-      grid-template-columns: 2fr repeat(4, 1fr);
+      grid-template-columns: 2fr repeat(5, 1fr);
       gap: 10px;
       margin-bottom: 16px;
     }
-    @media (max-width: 900px) {
-      .filters { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 1024px) {
+      .filters { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 560px) {
       .filters { grid-template-columns: 1fr; }
@@ -220,6 +220,7 @@
     .pill-warn { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
     .pill-bad { background: rgba(239, 68, 68, 0.16); color: #f87171; }
     .pill-info { background: rgba(59, 130, 246, 0.16); color: #60a5fa; }
+    .pill-base { background: rgba(168, 85, 247, 0.18); color: #c084fc; }
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -243,6 +244,24 @@
     }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .form-grid .full { grid-column: 1 / -1; }
+    .base-panel {
+      grid-column: 1 / -1;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px dashed #6366f1;
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .base-panel-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #c4b5fd;
+      margin-bottom: 8px;
+    }
+    .base-panel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
     label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
     .hint-inline { font-size: 0.72rem; color: var(--primary); margin-top: 4px; }
@@ -271,6 +290,7 @@
       <button id="btnSync" type="button">🔄 Sincronizar</button>
       <button id="btnDebug" type="button">🔍 Ver Crudo</button>
       <button id="btnSeed" type="button">☁️ Subir Base a Nube</button>
+      <button id="btnNewBase" type="button">+ Base Operaciones</button>
       <button id="btnNew" class="primary" type="button">+ Nuevo Punto</button>
       <button id="btnCsv" class="info" type="button">📊 Exportar Excel (CSV)</button>
       <button id="btnExportJson" type="button">💾 Respaldo JSON</button>
@@ -285,8 +305,8 @@
         <thead>
           <tr>
             <th></th>
-            <th>operables (en<br/>zona)</th>
-            <th>inoperables<br/>(en zona)</th>
+            <th>operables</th>
+            <th>inoperables</th>
             <th>stand by<br/>(en base)</th>
             <th>reparación<br/>(en<br/>base/taller)</th>
             <th>total</th>
@@ -298,7 +318,7 @@
 
     <section class="kpis">
       <div class="kpi">
-        <div class="label">Total Puntos</div>
+        <div class="label">Total Registros</div>
         <div id="kpiPuntos" class="val">0</div>
         <div id="kpiGps" class="sub">0 con GPS</div>
       </div>
@@ -308,14 +328,14 @@
         <div id="kpiOpNoOp" class="sub">0 op. / 0 inop.</div>
       </div>
       <div class="kpi">
-        <div class="label">Operables (en zona)</div>
+        <div class="label">Operables</div>
         <div id="kpiOperativas" class="val" style="color:var(--primary)">0</div>
-        <div class="sub">Listas para operar</div>
+        <div class="sub">Listas en puntos de zona</div>
       </div>
       <div class="kpi">
         <div class="label">Stand by (en base)</div>
         <div id="kpiStandBy" class="val" style="color:var(--info)">0</div>
-        <div class="sub">Operables de reserva</div>
+        <div class="sub">Reserva en base de operaciones</div>
       </div>
       <div class="kpi">
         <div class="label">Reparación (base/taller)</div>
@@ -323,7 +343,7 @@
         <div class="sub">En taller / mantenimiento</div>
       </div>
       <div class="kpi">
-        <div class="label">Inoperables (en zona)</div>
+        <div class="label">Inoperables</div>
         <div id="kpiNoOperativas" class="val" style="color:var(--danger)">0</div>
         <div class="sub" id="kpiNovedad">0 puntos con novedad</div>
       </div>
@@ -336,6 +356,11 @@
 
     <section class="filters">
       <input id="searchInput" type="search" placeholder="Buscar lugar o ID..." />
+      <select id="filterRegistro">
+        <option value="">Registro: Todos</option>
+        <option value="zona">Solo puntos de zona</option>
+        <option value="base">Base de operaciones</option>
+      </select>
       <select id="filterDistrito"><option value="">Todos los Distritos</option></select>
       <select id="filterTipo">
         <option value="">Todos los Tipos</option>
@@ -347,7 +372,7 @@
         <option value="">Unidades: Todas</option>
         <option value="con_standby">Con stand by (en base)</option>
         <option value="con_reparacion">En reparación (base/taller)</option>
-        <option value="con_no_op">Con inoperables (en zona)</option>
+        <option value="con_no_op">Con inoperables</option>
         <option value="todo_op">Todos operables</option>
       </select>
       <select id="filterGps">
@@ -378,7 +403,7 @@
               <th>Dist.</th>
               <th>Tipo</th>
               <th>Operables / Inop.</th>
-              <th>Stand by / Rep.</th>
+              <th>Base (SB / Rep)</th>
               <th>Total</th>
               <th>GPS</th>
               <th>Estado (Calc.)</th>
@@ -404,12 +429,15 @@
             <div id="fIdHint" class="hint-inline" style="display:none"></div>
           </div>
           <div>
-            <label>Distrito</label>
-            <input id="fDistrito" type="number" />
+            <label>Clase de Registro</label>
+            <select id="fEsBase">
+              <option value="0">Punto de zona (calle/ruta)</option>
+              <option value="1">Base de operaciones</option>
+            </select>
           </div>
           <div>
-            <label>Lugar / Ubicación</label>
-            <input id="fLugar" required />
+            <label>Distrito</label>
+            <input id="fDistrito" type="number" />
           </div>
           <div>
             <label>Tipo de Contenedor</label>
@@ -421,20 +449,31 @@
             </select>
           </div>
           <div>
-            <label>Operables (en zona)</label>
+            <label>Operables</label>
             <input id="fOperativas" type="number" min="0" value="0" />
           </div>
           <div>
-            <label>Inoperables (en zona)</label>
+            <label>Inoperables</label>
             <input id="fNoOperativas" type="number" min="0" value="0" />
           </div>
-          <div>
-            <label>Stand by (en base)</label>
-            <input id="fStandBy" type="number" min="0" value="0" />
+
+          <div id="baseFieldsPanel" class="base-panel" style="display:none">
+            <div class="base-panel-title">🏭 Control en Base de Operaciones</div>
+            <div class="base-panel-grid">
+              <div>
+                <label>Stand by (en base)</label>
+                <input id="fStandBy" type="number" min="0" value="0" />
+              </div>
+              <div>
+                <label>Reparación (en base/taller)</label>
+                <input id="fReparacion" type="number" min="0" value="0" />
+              </div>
+            </div>
           </div>
-          <div>
-            <label>Reparación (en base/taller)</label>
-            <input id="fReparacion" type="number" min="0" value="0" />
+
+          <div class="full">
+            <label>Lugar / Ubicación</label>
+            <input id="fLugar" required />
           </div>
           <div>
             <label>Latitud (LAT)</label>
@@ -503,6 +542,8 @@
     let pendingMap = {};
     let countsBackup = {};
     let lastRawSample = null;
+    let currentHiddenStandBy = 0;
+    let currentHiddenReparacion = 0;
 
     function setStatus(msg, isError = false) {
       const el = document.getElementById('syncStatus');
@@ -526,6 +567,22 @@
       if (val === '' || val === null || val === undefined) return 0;
       const n = Number(String(val).replace(',', '.').trim());
       return Number.isNaN(n) ? 0 : n;
+    }
+
+    function isBaseRecord(rec) {
+      if (!rec) return false;
+      const idStr = String(rec.id || '').toUpperCase();
+      const lugarStr = String(rec.lugar || '').toUpperCase();
+      const obsStr = String(rec.observaciones || '').toUpperCase();
+      if (idStr.startsWith('BASE') || lugarStr.includes('BASE DE OPERACIONES') || lugarStr.includes('BASE OPERACIONES') || obsStr.includes('[BASE]')) {
+        return true;
+      }
+      return parseNum(rec.standBy) > 0 || parseNum(rec.reparacion) > 0;
+    }
+
+    function toggleBaseFieldsVisibility() {
+      const isBase = document.getElementById('fEsBase').value === '1';
+      document.getElementById('baseFieldsPanel').style.display = isBase ? 'block' : 'none';
     }
 
     function loadCountsBackup() {
@@ -633,13 +690,26 @@
       });
     }
 
-    function getNextCorrelativeId() {
+    function getNextCorrelativeId(isBase = false) {
+      if (isBase) {
+        let maxBase = 0;
+        records.forEach(r => {
+          const match = String(r.id || '').trim().match(/^BASE-(\d+)$/i);
+          if (match) {
+            const n = parseInt(match[1], 10);
+            if (!Number.isNaN(n) && n > maxBase) maxBase = n;
+          }
+        });
+        return `BASE-${String(maxBase + 1).padStart(3, '0')}`;
+      }
+
       let maxNum = 0;
       let prefix = 'CONT-';
       let padLen = 3;
 
       records.forEach(r => {
         const rawId = String(r.id || '').trim();
+        if (/^BASE-/i.test(rawId)) return;
         const match = rawId.match(/^(.*?)(\d+)$/);
         if (match) {
           const num = parseInt(match[2], 10);
@@ -683,10 +753,10 @@
 
     function normalizeRecord(raw) {
       let op = parseNum(
-        raw.operativas ?? raw.OPERATIVOS ?? raw.operables ?? raw.OPERABLES ?? raw['OPERABLES (EN ZONA)']
+        raw.operativas ?? raw.OPERATIVOS ?? raw.operables ?? raw.OPERABLES
       );
       let noOp = parseNum(
-        raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS'] ?? raw.inoperables ?? raw.INOPERABLES ?? raw['INOPERABLES (EN ZONA)']
+        raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS'] ?? raw.inoperables ?? raw.INOPERABLES
       );
       const standBy = parseNum(
         raw.standBy ?? raw.stand_by ?? raw.relevo ?? raw['STAND BY'] ?? raw['STAND BY / RELEVO'] ?? raw['STAND BY (EN BASE)']
@@ -696,7 +766,6 @@
       );
       const rawCant = parseNum(raw.cantidad ?? raw.CANTIDAD);
 
-      // Si la hoja trae cantidad > 0 pero operativas y noOperativas vienen en 0, usamos cantidad
       if (op === 0 && noOp === 0 && rawCant > 0) {
         const estRaw = String(raw.estado ?? raw.ESTADO ?? '').toLowerCase();
         if (estRaw.includes('no op') || estRaw.includes('inoper')) {
@@ -837,11 +906,12 @@
       const totalUnid = calculateTotalUnits(rec);
       const imgHtml = rec.foto ? `<img src="${rec.foto}" alt="${rec.lugar}" onerror="this.style.display='none'" />` : '';
       const gpsText = (rec.lat !== null && rec.lng !== null) ? `${rec.lat}, ${rec.lng}` : 'Sin GPS';
+      const claseTxt = isBaseRecord(rec) ? 'Base de Operaciones' : 'Punto de Zona';
       box.innerHTML = `
         <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
-        <div class="sync-status">Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
+        <div class="sync-status">${claseTxt} · Distrito: ${rec.distrito || '-'} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
         <div style="margin-top:8px; font-size:0.86rem; line-height:1.5;">
-          <strong>En zona:</strong> ${rec.operativas} operables · ${rec.noOperativas} inoperables<br/>
+          <strong>Unidades:</strong> ${rec.operativas} operables · ${rec.noOperativas} inoperables<br/>
           <strong>Base / Taller:</strong> ${rec.standBy} stand by (en base) · ${rec.reparacion} reparación (en base/taller)<br/>
           <strong>Total unidades:</strong> ${totalUnid}<br/>
           <strong>GPS:</strong> ${gpsText}<br/>
@@ -912,6 +982,7 @@
 
     function getFilteredRecords() {
       const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const reg = document.getElementById('filterRegistro').value;
       const dist = document.getElementById('filterDistrito').value;
       const tipo = document.getElementById('filterTipo').value;
       const unid = document.getElementById('filterUnidades').value;
@@ -919,6 +990,9 @@
 
       return records.filter(r => {
         if (q && !r.id.toLowerCase().includes(q) && !r.lugar.toLowerCase().includes(q)) return false;
+        const esBase = isBaseRecord(r);
+        if (reg === 'zona' && esBase) return false;
+        if (reg === 'base' && !esBase) return false;
         if (dist && String(r.distrito) !== dist) return false;
         if (tipo && normalizeType(r.tipo) !== tipo) return false;
         if (unid === 'con_standby' && r.standBy <= 0) return false;
@@ -971,10 +1045,10 @@
       filtered.forEach(r => {
         if (r.lat !== null && r.lng !== null) {
           const marker = L.circleMarker([r.lat, r.lng], {
-            radius: 7,
+            radius: isBaseRecord(r) ? 9 : 7,
             fillColor: getMarkerColor(r.tipo),
-            color: '#ffffff',
-            weight: 1.5,
+            color: isBaseRecord(r) ? '#c084fc' : '#ffffff',
+            weight: isBaseRecord(r) ? 2.5 : 1.5,
             opacity: 1,
             fillOpacity: 0.9
           });
@@ -992,15 +1066,16 @@
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = filtered.map(r => {
         const hasGps = r.lat !== null && r.lng !== null;
+        const esBase = isBaseRecord(r);
         const pillClass = r.noOperativas > 0 ? 'pill-bad' : 'pill-ok';
-        const basePillClass = r.reparacion > 0 ? 'pill-warn' : 'pill-ok';
+        const basePillClass = esBase ? 'pill-base' : (r.reparacion > 0 ? 'pill-warn' : 'pill-info');
         const estCalc = calculateStatus(r);
         const estPillClass = getStatusPillClass(estCalc);
         const totalRow = calculateTotalUnits(r);
         return `
           <tr>
             <td><strong>${r.id}</strong></td>
-            <td>${r.lugar}</td>
+            <td>${r.lugar} ${esBase ? '<span class="pill pill-base">BASE</span>' : ''}</td>
             <td>${r.distrito}</td>
             <td>${r.tipo}</td>
             <td><span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} inop</span></td>
@@ -1213,15 +1288,24 @@
       }
     }
 
-    function openEditModal(id = '') {
+    function openEditModal(id = '', forceBase = false) {
       const rec = id ? records.find(r => r.id === id) : null;
+      const esBase = rec ? isBaseRecord(rec) : Boolean(forceBase);
       const hintEl = document.getElementById('fIdHint');
-      const suggestedId = rec ? rec.id : getNextCorrelativeId();
+      const suggestedId = rec ? rec.id : getNextCorrelativeId(esBase);
+
+      currentHiddenStandBy = rec ? parseNum(rec.standBy) : 0;
+      currentHiddenReparacion = rec ? parseNum(rec.reparacion) : 0;
 
       setGpsMsg('');
       setPhotoMsg('');
-      document.getElementById('modalTitle').textContent = rec ? `Editar ${rec.id}` : 'Nuevo Punto de Contenedores';
+      document.getElementById('modalTitle').textContent = rec
+        ? (esBase ? `Editar Base ${rec.id}` : `Editar Punto ${rec.id}`)
+        : (esBase ? 'Nueva Base de Operaciones' : 'Nuevo Punto de Contenedores');
+
       document.getElementById('fId').value = suggestedId;
+      document.getElementById('fEsBase').value = esBase ? '1' : '0';
+      toggleBaseFieldsVisibility();
 
       if (!rec) {
         hintEl.textContent = `Correlativo sugerido automáticamente (${suggestedId}). Puedes editarlo si lo necesitas.`;
@@ -1232,7 +1316,7 @@
       }
 
       document.getElementById('fDistrito').value = rec ? rec.distrito : '';
-      document.getElementById('fLugar').value = rec ? rec.lugar : '';
+      document.getElementById('fLugar').value = rec ? rec.lugar : (esBase ? 'Base de Operaciones' : '');
       document.getElementById('fTipo').value = rec ? normalizeType(rec.tipo) : 'contenedor 1.5 m3';
       document.getElementById('fOperativas').value = rec ? rec.operativas : 0;
       document.getElementById('fNoOperativas').value = rec ? rec.noOperativas : 0;
@@ -1272,6 +1356,7 @@
       document.getElementById('debugBackdrop').classList.add('open');
     }
 
+    document.getElementById('fEsBase').addEventListener('change', toggleBaseFieldsVisibility);
     document.getElementById('btnDebug').addEventListener('click', openDebugModal);
     document.getElementById('btnCloseDebug').addEventListener('click', () => {
       document.getElementById('debugBackdrop').classList.remove('open');
@@ -1296,11 +1381,17 @@
     document.getElementById('pointForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const tipoFinal = normalizeType(document.getElementById('fTipo').value);
+      const esBase = document.getElementById('fEsBase').value === '1';
 
       const op = Number(document.getElementById('fOperativas').value) || 0;
       const noOp = Number(document.getElementById('fNoOperativas').value) || 0;
-      const standBy = Number(document.getElementById('fStandBy').value) || 0;
-      const reparacion = Number(document.getElementById('fReparacion').value) || 0;
+      const standBy = esBase
+        ? (Number(document.getElementById('fStandBy').value) || 0)
+        : currentHiddenStandBy;
+      const reparacion = esBase
+        ? (Number(document.getElementById('fReparacion').value) || 0)
+        : currentHiddenReparacion;
+
       const latRaw = document.getElementById('fLat').value.trim();
       const lngRaw = document.getElementById('fLng').value.trim();
 
@@ -1347,13 +1438,14 @@
       }
     });
 
-    document.getElementById('btnNew').addEventListener('click', () => openEditModal(''));
+    document.getElementById('btnNew').addEventListener('click', () => openEditModal('', false));
+    document.getElementById('btnNewBase').addEventListener('click', () => openEditModal('', true));
     document.getElementById('btnCancelModal').addEventListener('click', closeModal);
     document.getElementById('btnSync').addEventListener('click', syncFromSheets);
     document.getElementById('btnSeed').addEventListener('click', seedToSheets);
 
     document.getElementById('btnCsv').addEventListener('click', () => {
-      const headers = ['ID','LUGAR','DISTRITO','OPERABLES (EN ZONA)','INOPERABLES (EN ZONA)','STAND BY (EN BASE)','REPARACION (EN BASE/TALLER)','TOTAL','TIPO','LAT','LNG','ESTADO','SUPERVISOR','OBSERVACIONES','FOTO','ULTIMA ACTUALIZACIÓN'];
+      const headers = ['ID','LUGAR','DISTRITO','OPERABLES','INOPERABLES','STAND BY (EN BASE)','REPARACION (EN BASE/TALLER)','TOTAL','TIPO','LAT','LNG','ESTADO','SUPERVISOR','OBSERVACIONES','FOTO','ULTIMA ACTUALIZACIÓN'];
       const rows = records.map(r => [
         r.id, r.lugar, r.distrito, r.operativas, r.noOperativas, r.standBy, r.reparacion,
         calculateTotalUnits(r), r.tipo, r.lat ?? '', r.lng ?? '', calculateStatus(r),
@@ -1398,7 +1490,7 @@
       reader.readAsText(file);
     });
 
-    ['searchInput', 'filterDistrito', 'filterTipo', 'filterUnidades', 'filterGps'].forEach(id => {
+    ['searchInput', 'filterRegistro', 'filterDistrito', 'filterTipo', 'filterUnidades', 'filterGps'].forEach(id => {
       document.getElementById(id).addEventListener('input', render);
       document.getElementById(id).addEventListener('change', render);
     });
