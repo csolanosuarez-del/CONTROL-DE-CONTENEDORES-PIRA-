@@ -447,7 +447,17 @@
       font-size: 0.82rem;
     }
     label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    .modal-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    button.btn-delete {
+      background: rgba(239, 68, 68, 0.16);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      margin-right: auto;
+    }
+    button.btn-delete:hover {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: #f87171;
+    }
     .hint-inline { font-size: 0.72rem; color: var(--primary); margin-top: 4px; }
     .gps-msg { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
     .photo-msg { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
@@ -799,6 +809,7 @@
           </div>
         </div>
         <div class="modal-actions">
+          <button id="btnDeleteRecord" class="btn-delete" type="button" style="display:none">🗑️ Borrar</button>
           <button id="btnCancelModal" type="button">Cancelar</button>
           <button class="primary" type="submit">Guardar y Sincronizar</button>
         </div>
@@ -870,6 +881,11 @@
         toggleBtn.classList.remove('unlocked');
         toggleBtn.textContent = '🔒 Admin';
         badgeEl.classList.remove('active');
+      }
+
+      const btnDelete = document.getElementById('btnDeleteRecord');
+      if (btnDelete && !isAdminUnlocked) {
+        btnDelete.style.display = 'none';
       }
     }
 
@@ -1413,7 +1429,7 @@
     function renderDetail(rec) {
       const box = document.getElementById('detailCard');
       if (!rec) {
-        box.innerHTML = '<h3>Toca un contenedor en el mapa</h3><div class="sync-status">Aquí se mostrará la foto y el detalle de unidades del punto seleccionado.</div>';
+        box.innerHTML = '<h3>Toca un contenedor en el mapa</h3><div class="sync-status">Aquí se mostrará la foto, el respaldo de orden EMACRUZ/WhatsApp y el detalle de unidades del punto seleccionado.</div>';
         return;
       }
       const estadoCalc = calculateStatus(rec);
@@ -1945,6 +1961,10 @@
       setPhotoMsg('');
       setWaPhotoMsg('');
 
+      const btnDelete = document.getElementById('btnDeleteRecord');
+      btnDelete.style.display = (rec && isAdminUnlocked) ? 'inline-flex' : 'none';
+      btnDelete.dataset.targetId = rec ? rec.id : '';
+
       if (rec) {
         document.getElementById('modalTitle').textContent = isEmacruzOrder
           ? `Orden EMACRUZ / WA — ${rec.id}`
@@ -2050,6 +2070,37 @@
     document.getElementById('btnDebug').addEventListener('click', openDebugModal);
     document.getElementById('btnCloseDebug').addEventListener('click', () => {
       document.getElementById('debugBackdrop').classList.remove('open');
+    });
+
+    document.getElementById('btnDeleteRecord').addEventListener('click', async () => {
+      const targetId = document.getElementById('btnDeleteRecord').dataset.targetId;
+      if (!isAdminUnlocked || !targetId) return;
+
+      const ok = confirm(`¿Seguro que deseas borrar el registro "${targetId}"? Esta acción lo quitará del mapa y de la tabla.`);
+      if (!ok) return;
+
+      records = records.filter(r => r.id !== targetId);
+      if (pendingMap[targetId]) {
+        delete pendingMap[targetId];
+        savePending();
+      }
+      if (countsBackup[targetId]) {
+        delete countsBackup[targetId];
+        saveCountsBackup();
+      }
+
+      saveLocal();
+      render();
+      renderDetail(null);
+      closeModal();
+
+      setStatus(`Registro ${targetId} eliminado localmente. Enviando orden de borrado a Google Sheets...`);
+      try {
+        await postToSheets({ action: 'delete', id: targetId }, true);
+        setTimeout(syncFromSheets, 4000);
+      } catch (err) {
+        setStatus(`Eliminado local; aviso al sincronizar borrado: ${err.message}`, true);
+      }
     });
 
     document.getElementById('btnGetGps').addEventListener('click', captureCurrentGps);
