@@ -716,7 +716,7 @@
             <div>
               <label>Tipo de Movimiento / Solicitud</label>
               <select id="fTipoSolicitud">
-                <option value="Operativo / Rutina">Operativo / Rutina</option>
+                <option value="Nuevo Punto">Nuevo Punto</option>
                 <option value="Mover / Reubicar">Mover / Reubicar</option>
                 <option value="Retiro Temporal">Retiro Temporal</option>
                 <option value="Retiro Definitivo">Retiro Definitivo</option>
@@ -1001,7 +1001,7 @@
         meta.motivoOrden ||
         meta.fotoOrdenWa ||
         (meta.canalSolicitud && meta.canalSolicitud !== 'Interno') ||
-        (meta.tipoSolicitud && meta.tipoSolicitud !== 'Operativo / Rutina')
+        (meta.tipoSolicitud && meta.tipoSolicitud !== 'Nuevo Punto')
       );
       if (!hasData) return cleanObs;
       const encoded = encodeURIComponent(JSON.stringify(meta));
@@ -1230,7 +1230,7 @@
       }
 
       const emacruzMeta = extractEmacruzMetaFromObs(obsRaw) || {};
-      const tipoSolicitud = String(raw.tipoSolicitud ?? raw.TIPO_SOLICITUD ?? emacruzMeta.tipoSolicitud ?? 'Operativo / Rutina').trim();
+      const tipoSolicitud = String(raw.tipoSolicitud ?? raw.TIPO_SOLICITUD ?? emacruzMeta.tipoSolicitud ?? 'Nuevo Punto').trim();
       const canalSolicitud = String(raw.canalSolicitud ?? raw.CANAL_SOLICITUD ?? emacruzMeta.canalSolicitud ?? 'Interno').trim();
       const solicitadoPor = String(raw.solicitadoPor ?? raw.SOLICITADO_POR ?? emacruzMeta.solicitadoPor ?? '').trim();
       const motivoOrden = String(raw.motivoOrden ?? raw.MOTIVO_ORDEN ?? emacruzMeta.motivoOrden ?? '').trim();
@@ -1274,7 +1274,7 @@
         String(rec.motivoOrden || '').trim() ||
         String(rec.fotoOrdenWa || '').trim() ||
         (rec.canalSolicitud && rec.canalSolicitud !== 'Interno') ||
-        (rec.tipoSolicitud && rec.tipoSolicitud !== 'Operativo / Rutina')
+        (rec.tipoSolicitud && rec.tipoSolicitud !== 'Nuevo Punto')
       );
     }
 
@@ -1774,7 +1774,7 @@
           standBy: finalStandBy,
           reparacion: finalRep,
           baseDesglose: mergedDesglose,
-          tipoSolicitud: norm.tipoSolicitud !== 'Operativo / Rutina' ? norm.tipoSolicitud : (refLocal?.tipoSolicitud || norm.tipoSolicitud),
+          tipoSolicitud: norm.tipoSolicitud !== 'Nuevo Punto' ? norm.tipoSolicitud : (refLocal?.tipoSolicitud || norm.tipoSolicitud),
           canalSolicitud: norm.canalSolicitud !== 'Interno' ? norm.canalSolicitud : (refLocal?.canalSolicitud || norm.canalSolicitud),
           solicitadoPor: norm.solicitadoPor || refLocal?.solicitadoPor || '',
           motivoOrden: norm.motivoOrden || refLocal?.motivoOrden || '',
@@ -1995,7 +1995,7 @@
 
       document.getElementById('fTipoSolicitud').value = isEmacruzOrder
         ? 'Mover / Reubicar'
-        : (rec?.tipoSolicitud || 'Operativo / Rutina');
+        : (rec?.tipoSolicitud || 'Nuevo Punto');
       document.getElementById('fCanalSolicitud').value = isEmacruzOrder
         ? 'WhatsApp EMACRUZ'
         : (rec?.canalSolicitud || 'Interno');
