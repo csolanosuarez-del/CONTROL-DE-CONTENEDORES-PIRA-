@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Control de Contenedores y Órdenes EMACRUZ</title>
+  <title>Control Operativo de Contenedores - Piraí</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
       --bg: #0f172a;
@@ -16,11 +17,11 @@
       --warning: #f59e0b;
       --danger: #ef4444;
       --info: #3b82f6;
+      --base-accent: #8b5cf6;
       --wa: #22c55e;
     }
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-    body { margin: 0; background: var(--bg); color: var(--text); overflow-x: hidden; }
-
+    body { margin: 0; background: var(--bg); color: var(--text); }
     header {
       background: #0b1120;
       border-bottom: 1px solid var(--border);
@@ -55,7 +56,7 @@
       display: none;
     }
     .badge-admin.active { display: inline-block; }
-    .status-text { font-size: 0.78rem; color: var(--muted); }
+    .sync-status { font-size: 0.78rem; color: var(--muted); }
 
     .toolbar-row {
       display: flex;
@@ -84,9 +85,11 @@
       align-items: center;
       gap: 6px;
     }
-    .admin-tools.unlocked { display: inline-flex; }
+    .admin-tools.unlocked {
+      display: inline-flex;
+    }
 
-    button {
+    button, .btn-link {
       background: var(--card);
       color: var(--text);
       border: 1px solid var(--border);
@@ -103,38 +106,46 @@
     button:hover { border-color: var(--muted); }
     button:active { transform: scale(0.99); }
 
-    button.btn-primary {
+    button.btn-new-point {
       background: var(--primary);
       border-color: var(--primary);
       color: #05251b;
       font-weight: 700;
       padding: 9px 14px;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
     }
-    button.btn-primary:hover { background: var(--primary-hover); }
+    button.btn-new-point:hover { background: var(--primary-hover); }
+
+    button.btn-base-op {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(167, 139, 250, 0.65);
+      color: #ddd6fe;
+      font-weight: 700;
+      padding: 9px 14px;
+    }
+    button.btn-base-op:hover {
+      background: rgba(139, 92, 246, 0.32);
+      border-color: #c4b5fd;
+    }
 
     button.btn-emacruz {
-      background: rgba(59, 130, 246, 0.2);
-      border-color: rgba(96, 165, 250, 0.65);
-      color: #93c5fd;
+      background: rgba(34, 197, 94, 0.16);
+      border-color: rgba(74, 222, 128, 0.55);
+      color: #86efac;
       font-weight: 700;
       padding: 9px 14px;
     }
     button.btn-emacruz:hover {
-      background: rgba(59, 130, 246, 0.32);
-      border-color: #60a5fa;
+      background: rgba(34, 197, 94, 0.28);
+      border-color: #4ade80;
     }
 
-    button.btn-danger {
-      background: rgba(239, 68, 68, 0.16);
-      border-color: rgba(248, 113, 113, 0.55);
-      color: #fca5a5;
-      margin-right: auto;
+    button.btn-sync {
+      background: rgba(15, 23, 42, 0.85);
+      border-color: var(--border);
+      color: var(--text);
     }
-    button.btn-wipe {
-      background: rgba(239, 68, 68, 0.22);
-      border-color: rgba(248, 113, 113, 0.7);
-      color: #fecaca;
-    }
+
     button.btn-admin-toggle {
       background: rgba(245, 158, 11, 0.12);
       border-color: rgba(245, 158, 11, 0.4);
@@ -148,11 +159,77 @@
       color: #6ee7b7;
     }
 
+    button.info { background: rgba(59, 130, 246, 0.18); border-color: rgba(59, 130, 246, 0.5); color: #93c5fd; }
+    button.gps-btn {
+      margin-top: 6px;
+      width: 100%;
+      justify-content: center;
+      background: rgba(16, 185, 129, 0.14);
+      border-color: rgba(16, 185, 129, 0.45);
+      color: #6ee7b7;
+      font-size: 0.8rem;
+      padding: 7px 10px;
+    }
     .container { max-width: 1450px; margin: 0 auto; padding: 16px; }
+
+    /* Cuadro Resumen Matriz */
+    .summary-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+    }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+      min-width: 640px;
+    }
+    .summary-table th,
+    .summary-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid rgba(51, 65, 85, 0.55);
+      text-align: center;
+      line-height: 1.25;
+    }
+    .summary-table th:last-child,
+    .summary-table td:last-child {
+      border-right: none;
+    }
+    .summary-table th {
+      background: #162032;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+    .summary-table td:first-child,
+    .summary-table th:first-child {
+      text-align: left;
+    }
+    .summary-table td:first-child {
+      font-weight: 700;
+      color: var(--text);
+      background: rgba(22, 32, 50, 0.45);
+    }
+    .summary-table td:last-child {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .summary-table tr.total-row td {
+      background: #131d2e;
+      font-weight: 700;
+      border-bottom: none;
+      color: #34d399;
+    }
+    .summary-table tr.total-row td:first-child {
+      color: var(--text);
+    }
 
     .kpis {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
       gap: 12px;
       margin-bottom: 16px;
     }
@@ -160,46 +237,23 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 13px;
+      padding: 14px;
     }
-    .kpi .label { font-size: 0.76rem; color: var(--muted); }
-    .kpi .val { font-size: 1.55rem; font-weight: 700; margin: 4px 0; }
-    .kpi .sub { font-size: 0.74rem; color: var(--muted); }
-
-    .tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
-    }
-    .tab-btn {
-      background: #0f172a;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-weight: 600;
-    }
-    .tab-btn.active {
-      background: rgba(16, 185, 129, 0.16);
-      border-color: var(--primary);
-      color: #6ee7b7;
-    }
-
+    .kpi .label { font-size: 0.78rem; color: var(--muted); }
+    .kpi .val { font-size: 1.6rem; font-weight: 700; margin: 4px 0; }
+    .kpi .sub { font-size: 0.75rem; color: var(--muted); }
     .filters {
       display: grid;
-      grid-template-columns: 1.5fr repeat(4, 1fr);
+      grid-template-columns: 1.4fr 1.6fr repeat(5, 1fr);
       gap: 10px;
       margin-bottom: 16px;
     }
-    @media (max-width: 1024px) {
-      .filters { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 1180px) {
+      .filters { grid-template-columns: repeat(3, 1fr); }
     }
-    @media (max-width: 560px) {
+    @media (max-width: 640px) {
       .filters { grid-template-columns: 1fr; }
     }
-
     input, select, textarea {
       width: 100%;
       background: var(--card);
@@ -209,17 +263,24 @@
       padding: 9px 11px;
       font-size: 0.88rem;
     }
-
     .main-grid {
       display: grid;
-      grid-template-columns: 370px 1fr;
+      grid-template-columns: 400px 1fr;
       gap: 16px;
       align-items: start;
     }
     @media (max-width: 1024px) {
       .main-grid { grid-template-columns: 1fr; }
     }
-
+    .left-col { display: flex; flex-direction: column; gap: 12px; }
+    #map {
+      width: 100%;
+      height: 360px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0b1120;
+    }
+    .legend { font-size: 0.76rem; color: var(--muted); line-height: 1.4; }
     .detail-box {
       background: var(--card);
       border: 1px solid var(--border);
@@ -229,11 +290,50 @@
     .detail-box h3 { margin: 0 0 6px; font-size: 1rem; }
     .detail-box img {
       width: 100%;
-      max-height: 210px;
+      max-height: 200px;
       object-fit: cover;
       border-radius: 8px;
       margin-top: 8px;
       border: 1px solid var(--border);
+    }
+
+    @media (max-width: 640px) {
+      header { padding: 10px 12px; gap: 8px; }
+      header h1 { font-size: 1rem; }
+      .toolbar-row { flex-direction: column; align-items: stretch; gap: 8px; }
+      .field-actions { justify-content: space-between; }
+      .field-actions .btn-new-point,
+      .field-actions .btn-base-op,
+      .field-actions .btn-emacruz { flex: 1 1 auto; justify-content: center; }
+      .admin-group {
+        padding-left: 0;
+        border-left: none;
+        padding-top: 6px;
+        border-top: 1px solid rgba(51, 65, 85, 0.6);
+        justify-content: space-between;
+      }
+      button, .btn-link { padding: 7px 10px; font-size: 0.78rem; border-radius: 7px; }
+      .container { padding: 10px; }
+      .summary-card { margin-bottom: 10px; border-radius: 8px; }
+      .summary-table { font-size: 0.76rem; min-width: 520px; }
+      .summary-table th,
+      .summary-table td { padding: 6px 7px; }
+      .summary-table th { font-size: 0.72rem; }
+      .kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
+      .kpi { padding: 9px 10px; border-radius: 8px; }
+      .kpi .label { font-size: 0.7rem; }
+      .kpi .val { font-size: 1.2rem; margin: 2px 0; }
+      .kpi .sub { font-size: 0.68rem; }
+      .filters { gap: 7px; margin-bottom: 10px; }
+      input, select, textarea { padding: 7px 9px; font-size: 0.82rem; }
+      .main-grid { gap: 10px; }
+      .left-col { gap: 8px; }
+      #map { height: 225px; border-radius: 8px; }
+      .legend { font-size: 0.7rem; }
+      .detail-box { padding: 10px; border-radius: 8px; }
+      .detail-box h3 { font-size: 0.9rem; }
+      .detail-box img { max-height: 145px; }
+      th, td { padding: 7px 8px; font-size: 0.78rem; }
     }
 
     .table-wrap {
@@ -242,33 +342,33 @@
       border-radius: 10px;
       overflow-x: auto;
     }
-    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     th, td {
-      padding: 9px 11px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border);
       text-align: left;
       white-space: nowrap;
     }
-    th { background: #162032; color: var(--muted); font-size: 0.74rem; text-transform: uppercase; }
+    th { background: #162032; color: var(--muted); font-size: 0.76rem; text-transform: uppercase; }
     tr:hover td { background: rgba(255, 255, 255, 0.03); }
-
     .pill {
       padding: 3px 8px;
       border-radius: 999px;
-      font-size: 0.73rem;
+      font-size: 0.74rem;
       font-weight: 600;
       display: inline-block;
     }
-    .st-op { background: rgba(16, 185, 129, 0.16); color: #34d399; }
-    .st-rep { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
-    .st-stby { background: rgba(59, 130, 246, 0.16); color: #60a5fa; }
-    .st-inop { background: rgba(239, 68, 68, 0.18); color: #f87171; }
+    .pill-ok { background: rgba(16, 185, 129, 0.16); color: #34d399; }
+    .pill-warn { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
+    .pill-bad { background: rgba(239, 68, 68, 0.16); color: #f87171; }
+    .pill-info { background: rgba(59, 130, 246, 0.16); color: #60a5fa; }
+    .pill-base { background: rgba(168, 85, 247, 0.18); color: #c084fc; }
     .pill-wa { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); }
 
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.65);
       display: none;
       align-items: center;
       justify-content: center;
@@ -281,40 +381,87 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       width: 100%;
-      max-width: 700px;
-      max-height: 92vh;
+      max-width: 620px;
+      max-height: 90vh;
       overflow-y: auto;
       padding: 18px;
     }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .form-grid .full { grid-column: 1 / -1; }
-    @media (max-width: 640px) {
+    @media (max-width: 600px) {
       .form-grid { grid-template-columns: 1fr; }
     }
-    .emacruz-box {
+    .base-panel {
       grid-column: 1 / -1;
-      background: rgba(15, 23, 42, 0.65);
-      border: 1px solid rgba(59, 130, 246, 0.45);
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px dashed #6366f1;
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .base-panel-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #c4b5fd;
+      margin-bottom: 8px;
+    }
+    .emacruz-panel {
+      grid-column: 1 / -1;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(34, 197, 94, 0.45);
       border-radius: 10px;
       padding: 12px;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
-    @media (max-width: 640px) {
-      .emacruz-box { grid-template-columns: 1fr; }
+    @media (max-width: 600px) {
+      .emacruz-panel { grid-template-columns: 1fr; }
     }
-    .emacruz-box-title {
+    .emacruz-panel-title {
       grid-column: 1 / -1;
-      font-size: 0.76rem;
+      font-size: 0.8rem;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      color: #4ade80;
       text-transform: uppercase;
-      color: #93c5fd;
+      letter-spacing: 0.03em;
+    }
+    .base-matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+    .base-matrix-table th,
+    .base-matrix-table td {
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      white-space: normal;
+    }
+    .base-matrix-table th {
+      background: #162032;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+    .base-matrix-table input {
+      padding: 6px 8px;
+      font-size: 0.82rem;
     }
     label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
-    .modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 14px; }
-    .msg-hint { font-size: 0.74rem; color: #93c5fd; margin-top: 4px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    .hint-inline { font-size: 0.72rem; color: var(--primary); margin-top: 4px; }
+    .gps-msg { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
+    .photo-msg { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
+    pre.debug-pre {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.76rem;
+      overflow-x: auto;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
@@ -322,201 +469,254 @@
     <div class="header-top">
       <div>
         <h1>
-          🗑️ Control de Contenedores y Órdenes EMACRUZ
-          <span class="badge-live">NUBE + LOCAL</span>
+          🗑️ Control de Contenedores Piraí
+          <span class="badge-live">EN LÍNEA</span>
           <span id="adminBadge" class="badge-admin">ADMIN ACTIVO</span>
         </h1>
-        <div id="statusBar" class="status-text">Listo para sincronizar con Google Sheets</div>
+        <div id="syncStatus" class="sync-status">Listo para sincronizar con Google Sheets</div>
       </div>
     </div>
 
     <div class="toolbar-row">
+      <!-- Acciones principales del supervisor en zona -->
       <div class="field-actions">
-        <button id="btnNewContainer" class="btn-primary" type="button">+ Registrar Contenedor</button>
-        <button id="btnNewOrderEmacruz" class="btn-emacruz" type="button">📲 Registrar Orden EMACRUZ / WhatsApp</button>
-        <button id="btnSync" type="button">🔄 Sincronizar</button>
+        <button id="btnNew" class="btn-new-point" type="button">+ Nuevo Punto</button>
+        <button id="btnNewEmacruz" class="btn-emacruz" type="button">📲 Orden EMACRUZ / WA</button>
+        <button id="btnNewBase" class="btn-base-op" type="button">🏭 Base Operaciones</button>
+        <button id="btnSync" class="btn-sync" type="button">🔄 Sincronizar</button>
       </div>
 
+      <!-- Controles exclusivos de administrador -->
       <div class="admin-group">
         <div id="adminTools" class="admin-tools">
-          <button id="btnExportCsv" type="button">📊 Excel (CSV)</button>
-          <button id="btnWipeAll" class="btn-wipe" type="button">🧹 Limpiar Todo</button>
+          <button id="btnSeed" type="button">☁️ Subir a Nube</button>
+          <button id="btnCsv" class="info" type="button">📊 Excel (CSV)</button>
+          <button id="btnExportJson" type="button">💾 Respaldo JSON</button>
+          <button id="btnImportJson" type="button">📂 Cargar JSON</button>
+          <button id="btnDebug" type="button">🔍 Ver Crudo</button>
         </div>
         <button id="btnAdminToggle" class="btn-admin-toggle" type="button">🔒 Admin</button>
+        <input id="fileJsonInput" type="file" accept=".json" style="display:none" />
       </div>
     </div>
   </header>
 
   <div class="container">
+    <section class="summary-card">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>operables</th>
+            <th>inoperables</th>
+            <th>stand by<br/>(en base)</th>
+            <th>reparación<br/>(en<br/>base/taller)</th>
+            <th>total</th>
+          </tr>
+        </thead>
+        <tbody id="summaryBody"></tbody>
+      </table>
+    </section>
+
     <section class="kpis">
       <div class="kpi">
-        <div class="label">Total Contenedores</div>
-        <div id="kpiTotal" class="val">0</div>
-        <div class="sub">Inventario activo en campo</div>
+        <div class="label">Total Registros</div>
+        <div id="kpiPuntos" class="val">0</div>
+        <div id="kpiGps" class="sub">0 con GPS</div>
       </div>
       <div class="kpi">
-        <div class="label">Operativos</div>
-        <div id="kpiOperativos" class="val" style="color:var(--primary)">0</div>
-        <div class="sub">En servicio normal</div>
+        <div class="label">Total Unidades</div>
+        <div id="kpiUnidades" class="val">0</div>
+        <div id="kpiOpNoOp" class="sub">0 op. / 0 inop.</div>
       </div>
       <div class="kpi">
-        <div class="label">En Reparación / Inoperativos</div>
-        <div id="kpiDanados" class="val" style="color:var(--warning)">0</div>
-        <div class="sub">Requieren mantenimiento</div>
+        <div class="label">Operables</div>
+        <div id="kpiOperativas" class="val" style="color:var(--primary)">0</div>
+        <div class="sub">Listas en puntos de zona</div>
       </div>
       <div class="kpi">
-        <div class="label">Standby / Retirados</div>
-        <div id="kpiStandby" class="val" style="color:var(--info)">0</div>
-        <div class="sub">Fuera de punto temporal/definitivo</div>
+        <div class="label">Stand by (en base)</div>
+        <div id="kpiStandBy" class="val" style="color:var(--info)">0</div>
+        <div class="sub">Reserva en base de operaciones</div>
       </div>
       <div class="kpi">
-        <div class="label">Órdenes EMACRUZ / WhatsApp</div>
-        <div id="kpiOrdenesWa" class="val" style="color:#4ade80">0</div>
-        <div class="sub">Movimientos y retiros solicitados</div>
+        <div class="label">Reparación (base/taller)</div>
+        <div id="kpiReparacion" class="val" style="color:var(--warning)">0</div>
+        <div class="sub">En taller / mantenimiento</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Inoperables</div>
+        <div id="kpiNoOperativas" class="val" style="color:var(--danger)">0</div>
+        <div class="sub" id="kpiNovedad">0 puntos con novedad</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Órdenes EMACRUZ / WA</div>
+        <div id="kpiOrdenesEmacruz" class="val" style="color:#4ade80">0</div>
+        <div class="sub">Solicitudes / traslados / retiros</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Con Foto de Campo</div>
+        <div id="kpiFotos" class="val" style="color:var(--info)">0</div>
+        <div class="sub">Evidencia visual</div>
       </div>
     </section>
 
-    <div class="tabs">
-      <button id="tabContainers" class="tab-btn active" type="button">📦 Inventario de Contenedores</button>
-      <button id="tabMovements" class="tab-btn" type="button">📋 Historial de Órdenes / Movimientos EMACRUZ</button>
-    </div>
-
     <section class="filters">
-      <input id="searchInput" type="search" placeholder="Buscar código, zona, ubicación, fiscal EMACRUZ..." />
+      <input id="searchInput" type="search" placeholder="Buscar lugar, ID o fiscal..." />
+      <select id="filterRegistro">
+        <option value="">Punto / Registro: Todos</option>
+      </select>
+      <select id="filterDistrito"><option value="">Todos los Distritos</option></select>
       <select id="filterTipo">
         <option value="">Todos los Tipos</option>
-        <option value="1.5 m³">1.5 m³</option>
-        <option value="10 m³">10 m³</option>
-        <option value="Caja Compactadora">Caja Compactadora</option>
-      </select>
-      <select id="filterEstado">
-        <option value="">Todos los Estados</option>
-        <option value="Operativo">Operativo</option>
-        <option value="Reparación">Reparación</option>
-        <option value="Standby">Standby</option>
-        <option value="Inoperativo">Inoperativo</option>
+        <option value="contenedor 1.5 m3">contenedor 1.5 m3</option>
+        <option value="contenedor 10 m3">contenedor 10 m3</option>
+        <option value="caja autocompactadora">caja autocompactadora</option>
       </select>
       <select id="filterCanal">
-        <option value="">Todos los Canales</option>
+        <option value="">Canal: Todos</option>
         <option value="WhatsApp EMACRUZ">WhatsApp EMACRUZ</option>
         <option value="Llamada">Llamada</option>
         <option value="Nota / Acta">Nota / Acta</option>
         <option value="Inspección en Campo">Inspección en Campo</option>
         <option value="Interno">Interno</option>
       </select>
-      <select id="filterDistrito">
-        <option value="">Todos los Distritos</option>
+      <select id="filterUnidades">
+        <option value="">Unidades: Todas</option>
+        <option value="con_ordenes">Con orden EMACRUZ / WA</option>
+        <option value="con_standby">Con stand by (en base)</option>
+        <option value="con_reparacion">En reparación (base/taller)</option>
+        <option value="con_no_op">Con inoperables</option>
+        <option value="todo_op">Todos operables</option>
+      </select>
+      <select id="filterGps">
+        <option value="">GPS: Todos</option>
+        <option value="con_gps">Con GPS</option>
+        <option value="sin_gps">Sin GPS</option>
       </select>
     </section>
 
     <section class="main-grid">
-      <div id="detailCard" class="detail-box">
-        <h3>Detalle del Registro</h3>
-        <div class="status-text">Haz clic en cualquier fila de la tabla para ver la ubicación, datos del fiscal EMACRUZ, foto del contenedor y captura de WhatsApp.</div>
+      <div class="left-col">
+        <div id="map"></div>
+        <div class="legend">
+          🟢 contenedor 1.5 m3 | 🔵 contenedor 10 m3 | 🟠 caja autocompactadora. Toca o haz clic en un marcador para ver su foto, orden EMACRUZ y unidades aquí abajo.
+        </div>
+        <div id="detailCard" class="detail-box">
+          <h3>Toca un contenedor en el mapa</h3>
+          <div class="sync-status">Aquí se mostrará la foto, el respaldo de orden EMACRUZ/WhatsApp y el detalle de unidades del punto seleccionado.</div>
+        </div>
       </div>
 
-      <div class="table-wrap" id="viewContainers">
+      <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Código</th>
+              <th>ID</th>
+              <th>Lugar / Ubicación</th>
+              <th>Dist.</th>
               <th>Tipo</th>
-              <th>Distrito</th>
-              <th>Zona / Ubicación</th>
-              <th>Estado</th>
-              <th>Último Movimiento</th>
-              <th>Fiscal / Solicitante</th>
-              <th>Canal</th>
-              <th>Fecha Ejec.</th>
-              <th>Evidencias</th>
-              <th>Acciones</th>
+              <th>Operable / Inoperable</th>
+              <th>Total</th>
+              <th>Orden / Fiscal</th>
+              <th>GPS</th>
+              <th>Estado (Calc.)</th>
+              <th>Foto</th>
+              <th>Acción</th>
             </tr>
           </thead>
-          <tbody id="containersBody"></tbody>
-        </table>
-      </div>
-
-      <div class="table-wrap" id="viewMovements" style="display:none">
-        <table>
-          <thead>
-            <tr>
-              <th>Fecha Solic.</th>
-              <th>Fecha Ejec.</th>
-              <th>Código</th>
-              <th>Tipo Solicitud</th>
-              <th>Canal</th>
-              <th>Fiscal EMACRUZ</th>
-              <th>Motivo</th>
-              <th>Origen → Destino</th>
-              <th>Estado Nuevo</th>
-              <th>Capturas</th>
-            </tr>
-          </thead>
-          <tbody id="movementsBody"></tbody>
+          <tbody id="tableBody"></tbody>
         </table>
       </div>
     </section>
   </div>
 
-  <!-- Modal Contenedor / Movimiento EMACRUZ -->
+  <!-- Modal Edición / Creación / Orden EMACRUZ -->
   <div id="modalBackdrop" class="modal-backdrop">
     <div class="modal">
-      <h3 id="modalTitle" style="margin-top:0">Registrar Contenedor</h3>
-      <form id="containerForm">
-        <input type="hidden" id="fId" />
-        <input type="hidden" id="fMode" value="container" />
-
+      <h3 id="modalTitle" style="margin-top:0">Punto de Contenedores</h3>
+      <form id="pointForm">
         <div class="form-grid">
           <div>
-            <label>Código de Contenedor / Caja</label>
-            <input id="fCodigo" list="containerCodeList" placeholder="Ej: C-105 o CC-02" required />
-            <datalist id="containerCodeList"></datalist>
+            <label>ID (opcional en Base de Operaciones)</label>
+            <input id="fId" />
+            <div id="fIdHint" class="hint-inline" style="display:none"></div>
           </div>
           <div>
+            <label>Clase de Registro</label>
+            <select id="fEsBase">
+              <option value="0">Punto de zona (calle/ruta)</option>
+              <option value="1">Base de operaciones</option>
+            </select>
+          </div>
+          <div>
+            <label>Distrito</label>
+            <input id="fDistrito" type="number" />
+          </div>
+          <div id="zonaTipoField">
             <label>Tipo de Contenedor</label>
-            <select id="fTipo" required>
-              <option value="1.5 m³">1.5 m³</option>
-              <option value="10 m³">10 m³</option>
-              <option value="Caja Compactadora">Caja Compactadora</option>
+            <select id="fTipo">
+              <option value="">Selecciona un tipo...</option>
+              <option value="contenedor 1.5 m3">contenedor 1.5 m3</option>
+              <option value="contenedor 10 m3">contenedor 10 m3</option>
+              <option value="caja autocompactadora">caja autocompactadora</option>
             </select>
           </div>
 
-          <div>
-            <label>Distrito</label>
-            <input id="fDistrito" placeholder="Ej: Distrito 1, Distrito 4..." required />
+          <div id="zonaFieldsGroup" style="display:contents">
+            <div>
+              <label>Operables</label>
+              <input id="fOperativas" type="number" min="0" value="0" />
+            </div>
+            <div>
+              <label>Inoperables</label>
+              <input id="fNoOperativas" type="number" min="0" value="0" />
+            </div>
           </div>
-          <div>
-            <label>Zona / Barrio / UV</label>
-            <input id="fZona" placeholder="Ej: UV-32 / Equipetrol / Plan 3000" required />
+
+          <div id="baseFieldsPanel" class="base-panel" style="display:none">
+            <div class="base-panel-title">🏭 Garaje / Base de Operaciones — Stand by y Reparación por Tipo</div>
+            <table class="base-matrix-table">
+              <thead>
+                <tr>
+                  <th>Tipo de Contenedor</th>
+                  <th>Stand by (en base)</th>
+                  <th>Reparación (en base/taller)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>contenedor 1.5 m3</strong></td>
+                  <td><input id="sb_1_5" type="number" min="0" value="0" /></td>
+                  <td><input id="rep_1_5" type="number" min="0" value="0" /></td>
+                </tr>
+                <tr>
+                  <td><strong>contenedor 10 m3</strong></td>
+                  <td><input id="sb_10" type="number" min="0" value="0" /></td>
+                  <td><input id="rep_10" type="number" min="0" value="0" /></td>
+                </tr>
+                <tr>
+                  <td><strong>caja autocompactadora</strong></td>
+                  <td><input id="sb_ac" type="number" min="0" value="0" /></td>
+                  <td><input id="rep_ac" type="number" min="0" value="0" /></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           <div class="full">
-            <label>Ubicación Exacta / Referencia (o Nueva Ubicación si se mueve)</label>
-            <input id="fUbicacion" placeholder="Ej: Av. Beni entre 2do y 3er anillo, esquina mercado..." required />
+            <label>Lugar / Ubicación (nueva ubicación si se reubica por orden)</label>
+            <input id="fLugar" required />
           </div>
 
-          <div>
-            <label>Estado Actual del Contenedor</label>
-            <select id="fEstado" required>
-              <option value="Operativo">Operativo</option>
-              <option value="Reparación">Reparación</option>
-              <option value="Standby">Standby</option>
-              <option value="Inoperativo">Inoperativo</option>
-            </select>
-          </div>
-          <div>
-            <label>Observaciones Generales</label>
-            <input id="fObservaciones" placeholder="Detalle adicional de campo..." />
-          </div>
-
-          <!-- Bloque Limpio de Solicitud / Orden EMACRUZ -->
-          <div class="emacruz-box">
-            <div class="emacruz-box-title">📲 Orden / Movimiento de Fiscalización (EMACRUZ / WhatsApp)</div>
+          <!-- Bloque Orden / Solicitud EMACRUZ (WhatsApp / Llamada / Nota) -->
+          <div class="emacruz-panel">
+            <div class="emacruz-panel-title">📲 Registro de Solicitud / Orden EMACRUZ (WhatsApp / Campo)</div>
 
             <div>
               <label>Tipo de Movimiento / Solicitud</label>
               <select id="fTipoSolicitud">
-                <option value="Alta / Inventario">Alta / Inventario</option>
+                <option value="Operativo / Rutina">Operativo / Rutina</option>
                 <option value="Mover / Reubicar">Mover / Reubicar</option>
                 <option value="Retiro Temporal">Retiro Temporal</option>
                 <option value="Retiro Definitivo">Retiro Definitivo</option>
@@ -537,7 +737,7 @@
 
             <div>
               <label>Fiscal EMACRUZ / Solicitante</label>
-              <input id="fSolicitadoPor" placeholder="Ej: Ing. Juan Pérez (Fiscal EMACRUZ)" />
+              <input id="fSolicitadoPor" placeholder="Ej: Nombre del fiscal EMACRUZ" />
             </div>
 
             <div>
@@ -562,150 +762,361 @@
               <label>Fecha de Ejecución en Campo</label>
               <input id="fFechaEjecucion" type="date" />
             </div>
+
+            <div class="full">
+              <label>Captura de WhatsApp / Respaldo de Orden (URL o Imagen)</label>
+              <input id="fFotoOrdenWa" placeholder="URL o captura del chat de WhatsApp..." />
+              <input id="fFotoOrdenWaFile" type="file" accept="image/*" style="margin-top:6px" />
+              <div id="waPhotoStatusMsg" class="photo-msg"></div>
+            </div>
           </div>
 
           <div>
-            <label>Foto del Contenedor / Punto (Cámara o URL)</label>
-            <input id="fFotoContenedor" placeholder="URL o captura..." />
-            <input id="fFotoContenedorFile" type="file" accept="image/*" capture="environment" style="margin-top:6px" />
+            <label>Latitud (LAT)</label>
+            <input id="fLat" type="number" step="any" />
           </div>
-
           <div>
-            <label>Captura del WhatsApp / Orden Escrita</label>
-            <input id="fFotoOrdenWa" placeholder="URL o captura de chat..." />
-            <input id="fFotoOrdenWaFile" type="file" accept="image/*" style="margin-top:6px" />
+            <label>Longitud (LNG)</label>
+            <input id="fLng" type="number" step="any" />
           </div>
-
           <div class="full">
-            <div id="fotoMsg" class="msg-hint"></div>
+            <button id="btnGetGps" class="gps-btn" type="button">📍 Usar GPS actual del dispositivo</button>
+            <div id="gpsStatusMsg" class="gps-msg"></div>
+          </div>
+          <div>
+            <label>Supervisor</label>
+            <input id="fSupervisor" />
+          </div>
+          <div>
+            <label>Foto del Punto / Contenedor (Cámara o URL)</label>
+            <input id="fFoto" placeholder="https://..." />
+            <input id="fFotoFile" type="file" accept="image/*" capture="environment" style="margin-top:6px" />
+            <div id="photoStatusMsg" class="photo-msg"></div>
+          </div>
+          <div class="full">
+            <label>Observaciones</label>
+            <textarea id="fObservaciones" rows="2"></textarea>
           </div>
         </div>
-
         <div class="modal-actions">
-          <button id="btnDeleteContainer" class="btn-danger" type="button" style="display:none">🗑️ Eliminar</button>
-          <button id="btnCancel" type="button">Cancelar</button>
-          <button class="btn-primary" type="submit">Guardar y Sincronizar</button>
+          <button id="btnCancelModal" type="button">Cancelar</button>
+          <button class="primary" type="submit">Guardar y Sincronizar</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Modal Diagnóstico Crudo -->
+  <div id="debugBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <h3 style="margin-top:0">Diagnóstico de Datos (Hoja / Respaldo)</h3>
+      <div class="sync-status" style="margin-bottom:8px">Muestra el primer registro recibido de Google Sheets y el respaldo local de cantidades.</div>
+      <pre id="debugOutput" class="debug-pre">Cargando...</pre>
+      <div class="modal-actions">
+        <button id="btnCloseDebug" class="primary" type="button">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const API_URL = 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT_EXEC';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbydlRNoUEwB9ncCWfZPtS1Co2Q3jWaX0KKdkOJ9KsJFtxCue5H4Urbg1aGFxDbDIrOZ/exec';
     const ADMIN_PIN = '1688';
-    const ADMIN_SESSION_KEY = 'contenedores_admin_v1';
-    const CONTAINERS_KEY = 'control_contenedores_v1';
-    const MOVEMENTS_KEY = 'control_movimientos_emacruz_v1';
+    const ADMIN_SESSION_KEY = 'pirai_admin_unlocked_v1';
+    const STORAGE_KEY = 'pirai_contenedores_v1';
+    const PENDING_KEY = 'pirai_contenedores_pending_v1';
+    const COUNTS_BACKUP_KEY = 'pirai_contenedores_last_counts_v1';
 
-    let containers = [];
-    let movements = [];
-    let activeTab = 'containers';
+    const ALLOWED_TYPES = [
+      'contenedor 1.5 m3',
+      'contenedor 10 m3',
+      'caja autocompactadora'
+    ];
+
+    const INITIAL_DATA = [];
+
+    let records = [];
+    let map, markersLayer;
+    let pendingMap = {};
+    let countsBackup = {};
+    let lastRawSample = null;
     let isAdminUnlocked = false;
-
-    function setStatus(msg, isError = false) {
-      const el = document.getElementById('statusBar');
-      el.textContent = msg;
-      el.style.color = isError ? '#f87171' : '#94a3b8';
-    }
+    let manualDistritoSelected = false;
 
     function todayIso() {
       const now = new Date();
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     }
 
-    function normalizeDateStr(val) {
+    function normalizeDateIso(val) {
       const s = String(val || '').trim();
       if (!s) return '';
       if (s.includes('T')) return s.slice(0, 10);
       return s;
     }
 
-    function normalizeContainer(raw) {
-      return {
-        id: String(raw.id ?? raw.ID_CONTENEDOR ?? '').trim() || ('CNT-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5)),
-        codigo: String(raw.codigo ?? raw.CODIGO ?? '').trim().toUpperCase(),
-        tipo: String(raw.tipo ?? raw.TIPO ?? '1.5 m³').trim(),
-        distrito: String(raw.distrito ?? raw.DISTRITO ?? '').trim(),
-        zona: String(raw.zona ?? raw.ZONA ?? '').trim(),
-        ubicacion: String(raw.ubicacion ?? raw.UBICACION ?? '').trim(),
-        estado: String(raw.estado ?? raw.ESTADO ?? 'Operativo').trim(),
-        ultimo_movimiento: String(raw.ultimo_movimiento ?? raw.ULTIMO_MOVIMIENTO ?? 'Alta / Inventario').trim(),
-        solicitado_por: String(raw.solicitado_por ?? raw.SOLICITADO_POR ?? '').trim(),
-        canal_solicitud: String(raw.canal_solicitud ?? raw.CANAL_SOLICITUD ?? 'Interno').trim(),
-        motivo_orden: String(raw.motivo_orden ?? raw.MOTIVO_ORDEN ?? '').trim(),
-        fecha_solicitud: normalizeDateStr(raw.fecha_solicitud ?? raw.FECHA_SOLICITUD),
-        fecha_ejecucion: normalizeDateStr(raw.fecha_ejecucion ?? raw.FECHA_EJECUCION),
-        observaciones: String(raw.observaciones ?? raw.OBSERVACIONES ?? '').trim(),
-        foto_contenedor: String(raw.foto_contenedor ?? raw.FOTO_CONTENEDOR ?? '').trim(),
-        foto_orden_wa: String(raw.foto_orden_wa ?? raw.FOTO_ORDEN_WA ?? '').trim(),
-        actualizado: String(raw.actualizado ?? raw.ACTUALIZADO ?? '').trim()
-      };
-    }
+    function applyAdminUiState() {
+      const toolsEl = document.getElementById('adminTools');
+      const toggleBtn = document.getElementById('btnAdminToggle');
+      const badgeEl = document.getElementById('adminBadge');
 
-    function normalizeMovement(raw) {
-      return {
-        id_movimiento: String(raw.id_movimiento ?? raw.ID_MOVIMIENTO ?? '').trim() || ('MOV-' + Date.now()),
-        id_contenedor: String(raw.id_contenedor ?? raw.ID_CONTENEDOR ?? '').trim(),
-        codigo: String(raw.codigo ?? raw.CODIGO ?? '').trim().toUpperCase(),
-        tipo: String(raw.tipo ?? raw.TIPO ?? '').trim(),
-        distrito_origen: String(raw.distrito_origen ?? raw.DISTRITO_ORIGEN ?? '').trim(),
-        zona_origen: String(raw.zona_origen ?? raw.ZONA_ORIGEN ?? '').trim(),
-        ubicacion_origen: String(raw.ubicacion_origen ?? raw.UBICACION_ORIGEN ?? '').trim(),
-        distrito_destino: String(raw.distrito_destino ?? raw.DISTRITO_DESTINO ?? '').trim(),
-        zona_destino: String(raw.zona_destino ?? raw.ZONA_DESTINO ?? '').trim(),
-        ubicacion_destino: String(raw.ubicacion_destino ?? raw.UBICACION_DESTINO ?? '').trim(),
-        estado_nuevo: String(raw.estado_nuevo ?? raw.ESTADO_NUEVO ?? '').trim(),
-        tipo_solicitud: String(raw.tipo_solicitud ?? raw.TIPO_SOLICITUD ?? '').trim(),
-        canal_solicitud: String(raw.canal_solicitud ?? raw.CANAL_SOLICITUD ?? '').trim(),
-        solicitado_por: String(raw.solicitado_por ?? raw.SOLICITADO_POR ?? '').trim(),
-        motivo_orden: String(raw.motivo_orden ?? raw.MOTIVO_ORDEN ?? '').trim(),
-        fecha_solicitud: normalizeDateStr(raw.fecha_solicitud ?? raw.FECHA_SOLICITUD),
-        fecha_ejecucion: normalizeDateStr(raw.fecha_ejecucion ?? raw.FECHA_EJECUCION),
-        observaciones: String(raw.observaciones ?? raw.OBSERVACIONES ?? '').trim(),
-        foto_contenedor: String(raw.foto_contenedor ?? raw.FOTO_CONTENEDOR ?? '').trim(),
-        foto_orden_wa: String(raw.foto_orden_wa ?? raw.FOTO_ORDEN_WA ?? '').trim(),
-        actualizado: String(raw.actualizado ?? raw.ACTUALIZADO ?? '').trim()
-      };
-    }
-
-    function saveLocal() {
-      try {
-        localStorage.setItem(CONTAINERS_KEY, JSON.stringify(containers));
-        localStorage.setItem(MOVEMENTS_KEY, JSON.stringify(movements));
-      } catch (e) {}
-    }
-
-    function loadLocal() {
-      try {
-        const c = JSON.parse(localStorage.getItem(CONTAINERS_KEY) || '[]');
-        const m = JSON.parse(localStorage.getItem(MOVEMENTS_KEY) || '[]');
-        containers = Array.isArray(c) ? c.map(normalizeContainer) : [];
-        movements = Array.isArray(m) ? m.map(normalizeMovement) : [];
-      } catch (e) {
-        containers = [];
-        movements = [];
+      if (isAdminUnlocked) {
+        toolsEl.classList.add('unlocked');
+        toggleBtn.classList.add('unlocked');
+        toggleBtn.textContent = '🔓 Bloquear Admin';
+        badgeEl.classList.add('active');
+      } else {
+        toolsEl.classList.remove('unlocked');
+        toggleBtn.classList.remove('unlocked');
+        toggleBtn.textContent = '🔒 Admin';
+        badgeEl.classList.remove('active');
       }
     }
 
-    function compressImage(file, maxW = 800, quality = 0.65) {
+    function handleAdminToggle() {
+      if (isAdminUnlocked) {
+        isAdminUnlocked = false;
+        sessionStorage.removeItem(ADMIN_SESSION_KEY);
+        applyAdminUiState();
+        setStatus('Modo administrador bloqueado.');
+        return;
+      }
+      const entered = prompt('Ingresa el PIN de administrador:');
+      if (entered === null) return;
+      if (String(entered).trim() === ADMIN_PIN) {
+        isAdminUnlocked = true;
+        sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+        applyAdminUiState();
+        setStatus('Modo administrador activado para esta sesión.');
+      } else {
+        setStatus('PIN de administrador incorrecto.', true);
+      }
+    }
+
+    function setStatus(msg, isError = false) {
+      const el = document.getElementById('syncStatus');
+      el.textContent = msg;
+      el.style.color = isError ? '#f87171' : '#94a3b8';
+    }
+
+    function setGpsMsg(msg, isError = false) {
+      const el = document.getElementById('gpsStatusMsg');
+      el.textContent = msg;
+      el.style.color = isError ? '#f87171' : '#34d399';
+    }
+
+    function setPhotoMsg(msg, isError = false) {
+      const el = document.getElementById('photoStatusMsg');
+      el.textContent = msg;
+      el.style.color = isError ? '#f87171' : '#93c5fd';
+    }
+
+    function setWaPhotoMsg(msg, isError = false) {
+      const el = document.getElementById('waPhotoStatusMsg');
+      el.textContent = msg;
+      el.style.color = isError ? '#f87171' : '#4ade80';
+    }
+
+    function parseNum(val) {
+      if (val === '' || val === null || val === undefined) return 0;
+      const n = Number(String(val).replace(',', '.').trim());
+      return Number.isNaN(n) ? 0 : n;
+    }
+
+    function isBaseRecord(rec) {
+      if (!rec) return false;
+      const idStr = String(rec.id || '').trim().toUpperCase();
+      const lugarStr = String(rec.lugar || '').trim().toUpperCase();
+      const obsStr = String(rec.observaciones || '').toUpperCase();
+      return (
+        idStr.startsWith('BASE') ||
+        lugarStr === 'BASE DE OPERACIONES' ||
+        lugarStr.includes('BASE DE OPERACIONES') ||
+        lugarStr.includes('BASE OPERACIONES') ||
+        lugarStr.includes('GARAJE') ||
+        obsStr.includes('[BASE]') ||
+        obsStr.includes('[BASE_DESGLOSE:')
+      );
+    }
+
+    function emptyBaseDesglose() {
+      return {
+        'contenedor 1.5 m3': { sb: 0, rep: 0 },
+        'contenedor 10 m3': { sb: 0, rep: 0 },
+        'caja autocompactadora': { sb: 0, rep: 0 }
+      };
+    }
+
+    function extractBaseDesgloseFromObs(obs) {
+      const result = emptyBaseDesglose();
+      if (!obs) return result;
+      const match = String(obs).match(/\[BASE_DESGLOSE:([^\]]+)\]/);
+      if (!match) return result;
+      try {
+        const parsed = JSON.parse(decodeURIComponent(match[1]));
+        ALLOWED_TYPES.forEach(t => {
+          if (parsed && parsed[t]) {
+            result[t] = {
+              sb: parseNum(parsed[t].sb),
+              rep: parseNum(parsed[t].rep)
+            };
+          }
+        });
+      } catch (e) {}
+      return result;
+    }
+
+    function extractEmacruzMetaFromObs(obs) {
+      if (!obs) return null;
+      const match = String(obs).match(/\[EMACRUZ_ORDEN:([^\]]+)\]/);
+      if (!match) return null;
+      try {
+        return JSON.parse(decodeURIComponent(match[1]));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function stripMetaTags(obs) {
+      return String(obs || '')
+        .replace(/\s*\[BASE_DESGLOSE:[^\]]+\]\s*/g, '')
+        .replace(/\s*\[EMACRUZ_ORDEN:[^\]]+\]\s*/g, '')
+        .trim();
+    }
+
+    function attachBaseDesgloseTag(obs, desglose, standByTotal, reparacionTotal) {
+      const cleanObs = String(obs || '').replace(/\s*\[BASE_DESGLOSE:[^\]]+\]\s*/g, '').trim();
+      const hasAny = ALLOWED_TYPES.some(t => parseNum(desglose[t]?.sb) > 0 || parseNum(desglose[t]?.rep) > 0);
+      if (!hasAny && (standByTotal > 0 || reparacionTotal > 0)) {
+        desglose['contenedor 1.5 m3'] = { sb: standByTotal, rep: reparacionTotal };
+      }
+      const encoded = encodeURIComponent(JSON.stringify(desglose));
+      return cleanObs ? `${cleanObs} [BASE_DESGLOSE:${encoded}]` : `[BASE_DESGLOSE:${encoded}]`;
+    }
+
+    function attachEmacruzTag(obs, meta) {
+      const cleanObs = String(obs || '').replace(/\s*\[EMACRUZ_ORDEN:[^\]]+\]\s*/g, '').trim();
+      const hasData = meta && (
+        meta.solicitadoPor ||
+        meta.motivoOrden ||
+        meta.fotoOrdenWa ||
+        (meta.canalSolicitud && meta.canalSolicitud !== 'Interno') ||
+        (meta.tipoSolicitud && meta.tipoSolicitud !== 'Operativo / Rutina')
+      );
+      if (!hasData) return cleanObs;
+      const encoded = encodeURIComponent(JSON.stringify(meta));
+      return cleanObs ? `${cleanObs} [EMACRUZ_ORDEN:${encoded}]` : `[EMACRUZ_ORDEN:${encoded}]`;
+    }
+
+    function toggleBaseFieldsVisibility() {
+      const isBase = document.getElementById('fEsBase').value === '1';
+      document.getElementById('baseFieldsPanel').style.display = isBase ? 'block' : 'none';
+      document.getElementById('zonaFieldsGroup').style.display = isBase ? 'none' : 'contents';
+      document.getElementById('zonaTipoField').style.display = isBase ? 'none' : 'block';
+      document.getElementById('fId').required = !isBase;
+      document.getElementById('fTipo').required = !isBase;
+    }
+
+    function loadCountsBackup() {
+      try {
+        const raw = localStorage.getItem(COUNTS_BACKUP_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveCountsBackup() {
+      try {
+        localStorage.setItem(COUNTS_BACKUP_KEY, JSON.stringify(countsBackup));
+      } catch (e) {}
+    }
+
+    function recordCountsInBackup(rec) {
+      if (!rec || !rec.id) return;
+      const op = parseNum(rec.operativas);
+      const noOp = parseNum(rec.noOperativas);
+      const sb = parseNum(rec.standBy);
+      const rep = parseNum(rec.reparacion);
+      if (op > 0 || noOp > 0 || sb > 0 || rep > 0 || rec.baseDesglose) {
+        countsBackup[rec.id] = {
+          operativas: op,
+          noOperativas: noOp,
+          standBy: sb,
+          reparacion: rep,
+          baseDesglose: rec.baseDesglose || null,
+          updatedAt: Date.now()
+        };
+        saveCountsBackup();
+      }
+    }
+
+    function calculateTotalUnits(rec) {
+      return (
+        parseNum(rec.operativas) +
+        parseNum(rec.noOperativas) +
+        parseNum(rec.standBy) +
+        parseNum(rec.reparacion)
+      );
+    }
+
+    function calculateStatus(rec) {
+      const op = parseNum(rec.operativas);
+      const noOp = parseNum(rec.noOperativas);
+      const sb = parseNum(rec.standBy);
+      const rep = parseNum(rec.reparacion);
+
+      if (noOp > 0 && op === 0) return 'No Operativo';
+      if (noOp > 0 && op > 0) return 'Con Novedad';
+      if (rep > 0 && sb > 0) return 'Stand by / Reparación';
+      if (rep > 0) return 'En Reparación';
+      if (sb > 0) return 'Stand by';
+      return 'Operativo';
+    }
+
+    function getStatusPillClass(estadoCalc) {
+      if (estadoCalc === 'No Operativo') return 'pill-bad';
+      if (estadoCalc === 'Con Novedad' || estadoCalc === 'En Reparación' || estadoCalc === 'Stand by / Reparación') return 'pill-warn';
+      if (estadoCalc === 'Stand by') return 'pill-info';
+      return 'pill-ok';
+    }
+
+    function normalizeType(tipoVal) {
+      const raw = String(tipoVal || '').toLowerCase().replace(',', '.').replace(/³/g, '3').replace(/\s+/g, ' ').trim();
+      if (!raw) return 'contenedor 1.5 m3';
+      if (raw.includes('compact') || raw.includes('autocomp') || raw.includes('15')) {
+        return 'caja autocompactadora';
+      }
+      if (raw.includes('10')) {
+        return 'contenedor 10 m3';
+      }
+      return 'contenedor 1.5 m3';
+    }
+
+    function compressImageFile(file, maxWidth = 800, quality = 0.65) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
         reader.onload = () => {
           const img = new Image();
-          img.onerror = () => reject(new Error('Imagen inválida'));
+          img.onerror = () => reject(new Error('Archivo de imagen no válido'));
           img.onload = () => {
-            let w = img.width;
-            let h = img.height;
-            if (w > maxW) {
-              h = Math.round((h * maxW) / w);
-              w = maxW;
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
             }
             const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', quality));
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            const approxKb = Math.round((dataUrl.length * 3) / 4 / 1024);
+            resolve({ dataUrl, approxKb, width, height });
           };
           img.src = reader.result;
         };
@@ -713,178 +1124,898 @@
       });
     }
 
-    function getEstadoClass(est) {
-      if (est === 'Operativo') return 'st-op';
-      if (est === 'Reparación') return 'st-rep';
-      if (est === 'Standby') return 'st-stby';
-      return 'st-inop';
+    function getNextCorrelativeId(isBase = false) {
+      if (isBase) {
+        let maxBase = 0;
+        records.forEach(r => {
+          const match = String(r.id || '').trim().match(/^BASE-(\d+)$/i);
+          if (match) {
+            const n = parseInt(match[1], 10);
+            if (!Number.isNaN(n) && n > maxBase) maxBase = n;
+          }
+        });
+        return `BASE-${String(maxBase + 1).padStart(2, '0')}`;
+      }
+
+      let maxNum = 0;
+      let prefix = 'CONT-';
+      let padLen = 3;
+
+      records.forEach(r => {
+        const rawId = String(r.id || '').trim();
+        if (/^BASE/i.test(rawId)) return;
+        const match = rawId.match(/^(.*?)(\d+)$/);
+        if (match) {
+          const num = parseInt(match[2], 10);
+          if (!Number.isNaN(num) && num >= maxNum) {
+            maxNum = num;
+            if (match[1]) prefix = match[1];
+            padLen = Math.max(3, match[2].length);
+          }
+        }
+      });
+
+      const nextNum = String(maxNum + 1).padStart(padLen, '0');
+      return `${prefix}${nextNum}`;
+    }
+
+    function captureCurrentGps() {
+      if (!navigator.geolocation) {
+        setGpsMsg('Este navegador o dispositivo no soporta geolocalización.', true);
+        return;
+      }
+      setGpsMsg('Obteniendo ubicación GPS actual...');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = Number(pos.coords.latitude.toFixed(6));
+          const lng = Number(pos.coords.longitude.toFixed(6));
+          const acc = Math.round(pos.coords.accuracy || 0);
+          document.getElementById('fLat').value = lat;
+          document.getElementById('fLng').value = lng;
+          setGpsMsg(`GPS capturado (${lat}, ${lng}) — precisión aprox. ${acc} m.`);
+        },
+        (err) => {
+          let detail = 'No se pudo obtener el GPS.';
+          if (err.code === 1) detail = 'Permiso de ubicación denegado. Activa el GPS y permite ubicación en el navegador.';
+          else if (err.code === 2) detail = 'Señal GPS no disponible en este momento.';
+          else if (err.code === 3) detail = 'Tiempo de espera agotado al buscar señal GPS.';
+          setGpsMsg(detail, true);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    function normalizeRecord(raw) {
+      let op = parseNum(
+        raw.operativas ?? raw.OPERATIVOS ?? raw.operables ?? raw.OPERABLES
+      );
+      let noOp = parseNum(
+        raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS'] ?? raw.inoperables ?? raw.INOPERABLES
+      );
+      const standBy = parseNum(
+        raw.standBy ?? raw.stand_by ?? raw.relevo ?? raw['STAND BY'] ?? raw['STAND BY / RELEVO'] ?? raw['STAND BY (EN BASE)']
+      );
+      const reparacion = parseNum(
+        raw.reparacion ?? raw.enReparacion ?? raw.en_reparacion ?? raw['EN REPARACION'] ?? raw['REPARACION'] ?? raw['REPARACIÓN'] ?? raw['REPARACION (EN BASE/TALLER)']
+      );
+      const rawCant = parseNum(raw.cantidad ?? raw.CANTIDAD);
+
+      if (op === 0 && noOp === 0 && rawCant > 0) {
+        const estRaw = String(raw.estado ?? raw.ESTADO ?? '').toLowerCase();
+        if (estRaw.includes('no op') || estRaw.includes('inoper')) {
+          noOp = rawCant;
+        } else {
+          op = rawCant;
+        }
+      }
+
+      const cant = op + noOp + standBy + reparacion;
+
+      const latRaw = raw.lat ?? raw.LAT;
+      const lngRaw = raw.lng ?? raw.LNG;
+      const latNum = (latRaw === '' || latRaw === null || latRaw === undefined) ? NaN : Number(String(latRaw).replace(',', '.').trim());
+      const lngNum = (lngRaw === '' || lngRaw === null || lngRaw === undefined) ? NaN : Number(String(lngRaw).replace(',', '.').trim());
+      const lat = Number.isNaN(latNum) ? null : latNum;
+      const lng = Number.isNaN(lngNum) ? null : lngNum;
+
+      const distRaw = raw.distrito ?? raw.DISTRITO;
+      const idClean = String(raw.id ?? raw.ID ?? '').trim();
+      const lugarClean = String(raw.lugar ?? raw.LUGAR ?? '').trim();
+      const effectiveId = idClean || lugarClean;
+      const obsRaw = String(raw.observaciones ?? raw.OBSERVACIONES ?? '').trim();
+
+      let baseDesglose = raw.baseDesglose || null;
+      if (!baseDesglose && obsRaw.includes('[BASE_DESGLOSE:')) {
+        baseDesglose = extractBaseDesgloseFromObs(obsRaw);
+      }
+
+      const emacruzMeta = extractEmacruzMetaFromObs(obsRaw) || {};
+      const tipoSolicitud = String(raw.tipoSolicitud ?? raw.TIPO_SOLICITUD ?? emacruzMeta.tipoSolicitud ?? 'Operativo / Rutina').trim();
+      const canalSolicitud = String(raw.canalSolicitud ?? raw.CANAL_SOLICITUD ?? emacruzMeta.canalSolicitud ?? 'Interno').trim();
+      const solicitadoPor = String(raw.solicitadoPor ?? raw.SOLICITADO_POR ?? emacruzMeta.solicitadoPor ?? '').trim();
+      const motivoOrden = String(raw.motivoOrden ?? raw.MOTIVO_ORDEN ?? emacruzMeta.motivoOrden ?? '').trim();
+      const fechaSolicitud = normalizeDateIso(raw.fechaSolicitud ?? raw.FECHA_SOLICITUD ?? emacruzMeta.fechaSolicitud ?? '');
+      const fechaEjecucion = normalizeDateIso(raw.fechaEjecucion ?? raw.FECHA_EJECUCION ?? emacruzMeta.fechaEjecucion ?? '');
+      const fotoOrdenWa = String(raw.fotoOrdenWa ?? raw.FOTO_ORDEN_WA ?? emacruzMeta.fotoOrdenWa ?? '').trim();
+
+      const base = {
+        id: effectiveId,
+        lugar: lugarClean || idClean,
+        distrito: distRaw === '' || distRaw === undefined || distRaw === null ? '' : Number(distRaw),
+        cantidad: cant,
+        operativas: op,
+        noOperativas: noOp,
+        standBy,
+        reparacion,
+        baseDesglose,
+        tipoSolicitud,
+        canalSolicitud,
+        solicitadoPor,
+        motivoOrden,
+        fechaSolicitud,
+        fechaEjecucion,
+        fotoOrdenWa,
+        tipo: normalizeType(raw.tipo ?? raw.TIPO ?? ''),
+        lat,
+        lng,
+        supervisor: String(raw.supervisor ?? raw.SUPERVISOR ?? '').trim(),
+        observaciones: obsRaw,
+        foto: String(raw.foto ?? raw.FOTO ?? '').trim(),
+        ultimaActualizacion: String(raw.ultimaActualizacion ?? raw['ULTIMA ACTUALIZACIÓN'] ?? '').trim()
+      };
+      base.estado = calculateStatus(base);
+      return base;
+    }
+
+    function hasEmacruzOrder(rec) {
+      if (!rec) return false;
+      return Boolean(
+        String(rec.solicitadoPor || '').trim() ||
+        String(rec.motivoOrden || '').trim() ||
+        String(rec.fotoOrdenWa || '').trim() ||
+        (rec.canalSolicitud && rec.canalSolicitud !== 'Interno') ||
+        (rec.tipoSolicitud && rec.tipoSolicitud !== 'Operativo / Rutina')
+      );
+    }
+
+    function saveLocal() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      } catch (e) {
+        try {
+          const lightRecords = records.map(r => ({
+            ...r,
+            foto: r.foto && r.foto.startsWith('data:') ? '' : r.foto,
+            fotoOrdenWa: r.fotoOrdenWa && r.fotoOrdenWa.startsWith('data:') ? '' : r.fotoOrdenWa
+          }));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(lightRecords));
+        } catch (e2) {}
+      }
+    }
+
+    function savePending() {
+      try {
+        localStorage.setItem(PENDING_KEY, JSON.stringify(pendingMap));
+      } catch (e) {
+        try {
+          const lightPending = {};
+          Object.keys(pendingMap).forEach(k => {
+            const item = pendingMap[k];
+            if (item && item.record) {
+              lightPending[k] = {
+                expiresAt: item.expiresAt,
+                record: {
+                  ...item.record,
+                  foto: item.record.foto && item.record.foto.startsWith('data:') ? '' : item.record.foto,
+                  fotoOrdenWa: item.record.fotoOrdenWa && item.record.fotoOrdenWa.startsWith('data:') ? '' : item.record.fotoOrdenWa
+                }
+              };
+            }
+          });
+          localStorage.setItem(PENDING_KEY, JSON.stringify(lightPending));
+        } catch (e2) {}
+      }
+    }
+
+    function loadPending() {
+      try {
+        const raw = localStorage.getItem(PENDING_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return {};
+        const now = Date.now();
+        const cleaned = {};
+        Object.keys(parsed).forEach(k => {
+          const item = parsed[k];
+          if (item && item.expiresAt && item.expiresAt > now && item.record) {
+            cleaned[k] = {
+              record: normalizeRecord(item.record),
+              expiresAt: item.expiresAt
+            };
+          }
+        });
+        return cleaned;
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function loadLocal() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            return parsed.map(normalizeRecord).filter(r => r.id || r.lugar);
+          }
+        }
+      } catch (e) {}
+      return INITIAL_DATA.map(normalizeRecord);
+    }
+
+    function initMap() {
+      map = L.map('map').setView([-17.7833, -63.1821], 12);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+    }
+
+    function getMarkerColor(tipo) {
+      const t = normalizeType(tipo);
+      if (t === 'caja autocompactadora') return '#f97316';
+      if (t === 'contenedor 10 m3') return '#3b82f6';
+      return '#10b981';
+    }
+
+    function findRelatedDistrito(rec) {
+      if (!rec) return '';
+      if (rec.distrito !== '' && rec.distrito !== undefined && rec.distrito !== null) {
+        return String(rec.distrito);
+      }
+      const lugarNorm = String(rec.lugar || '').trim().toLowerCase();
+      if (lugarNorm) {
+        const sameLugar = records.find(
+          r => r.id !== rec.id &&
+               String(r.lugar || '').trim().toLowerCase() === lugarNorm &&
+               r.distrito !== '' && r.distrito !== undefined && r.distrito !== null
+        );
+        if (sameLugar) return String(sameLugar.distrito);
+      }
+      if (rec.lat !== null && rec.lng !== null) {
+        let bestDist = Infinity;
+        let bestVal = '';
+        records.forEach(r => {
+          if (r.id === rec.id || r.lat === null || r.lng === null) return;
+          if (r.distrito === '' || r.distrito === undefined || r.distrito === null) return;
+          const dLat = r.lat - rec.lat;
+          const dLng = r.lng - rec.lng;
+          const approxDegDist = Math.hypot(dLat, dLng);
+          if (approxDegDist < 0.003 && approxDegDist < bestDist) {
+            bestDist = approxDegDist;
+            bestVal = String(r.distrito);
+          }
+        });
+        if (bestVal) return bestVal;
+      }
+      return '';
+    }
+
+    function getEffectiveDistrito(rec) {
+      if (!rec) return '';
+      if (rec.distrito !== '' && rec.distrito !== undefined && rec.distrito !== null) {
+        return String(rec.distrito);
+      }
+      return findRelatedDistrito(rec);
+    }
+
+    function renderDetail(rec) {
+      const box = document.getElementById('detailCard');
+      if (!rec) {
+        box.innerHTML = '<h3>Toca un contenedor en el mapa</h3><div class="sync-status">Aquí se mostrará la foto y el detalle de unidades del punto seleccionado.</div>';
+        return;
+      }
+      const estadoCalc = calculateStatus(rec);
+      const totalUnid = calculateTotalUnits(rec);
+      const imgHtml = rec.foto ? `<div class="photo-msg" style="margin-top:8px">Foto del Contenedor / Punto:</div><img src="${rec.foto}" alt="${rec.lugar}" onerror="this.style.display='none'" />` : '';
+      const waImgHtml = rec.fotoOrdenWa ? `<div class="photo-msg" style="color:#4ade80;margin-top:8px">Captura de WhatsApp / Orden:</div><img src="${rec.fotoOrdenWa}" alt="Captura orden EMACRUZ" onerror="this.style.display='none'" />` : '';
+      const gpsText = (rec.lat !== null && rec.lng !== null) ? `${rec.lat}, ${rec.lng}` : 'Sin GPS';
+      const esBase = isBaseRecord(rec);
+      const cleanObs = stripMetaTags(rec.observaciones);
+      const efectivoDist = getEffectiveDistrito(rec);
+      const distLabel = efectivoDist
+        ? (rec.distrito === '' || rec.distrito === undefined || rec.distrito === null ? `${efectivoDist} (por punto cercano)` : efectivoDist)
+        : '-';
+
+      let unidadesHtml = `<strong>Unidades:</strong> ${rec.operativas} operable · ${rec.noOperativas} inoperable<br/>`;
+      if (esBase) {
+        const desg = rec.baseDesglose || extractBaseDesgloseFromObs(rec.observaciones);
+        const lines = ALLOWED_TYPES.map(t => {
+          const d = desg[t] || { sb: 0, rep: 0 };
+          return `${t}: ${d.sb} SB / ${d.rep} Rep`;
+        }).join(' · ');
+        unidadesHtml = `<strong>Base / Garaje:</strong> ${rec.standBy} stand by · ${rec.reparacion} reparación<br/><span style="color:var(--muted);font-size:0.8rem">${lines}</span><br/>`;
+      }
+
+      const emacruzHtml = hasEmacruzOrder(rec)
+        ? `<div style="margin-top:8px;padding:8px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);font-size:0.82rem;line-height:1.45">
+             <strong style="color:#4ade80">Orden EMACRUZ / Solicitud:</strong> ${rec.tipoSolicitud || '-'} (${rec.canalSolicitud || '-'})<br/>
+             <strong>Fiscal / Solicitante:</strong> ${rec.solicitadoPor || '-'}<br/>
+             <strong>Motivo:</strong> ${rec.motivoOrden || '-'}<br/>
+             <strong>Fechas:</strong> Solicitud ${rec.fechaSolicitud || '-'} · Ejecución ${rec.fechaEjecucion || '-'}
+           </div>`
+        : '';
+
+      box.innerHTML = `
+        <h3>${rec.id} — ${rec.lugar || 'Sin lugar'}</h3>
+        <div class="sync-status">${esBase ? 'Base de Operaciones (Garaje)' : 'Punto de Zona'} · Distrito: ${distLabel} | Tipo: ${rec.tipo} | Estado: ${estadoCalc}</div>
+        <div style="margin-top:8px; font-size:0.86rem; line-height:1.5;">
+          ${unidadesHtml}
+          <strong>Total unidades:</strong> ${totalUnid}<br/>
+          <strong>GPS:</strong> ${gpsText}<br/>
+          <strong>Supervisor:</strong> ${rec.supervisor || '-'}<br/>
+          <strong>Observaciones:</strong> ${cleanObs || '-'}
+        </div>
+        ${emacruzHtml}
+        ${imgHtml}
+        ${waImgHtml}
+      `;
+    }
+
+    function renderSummaryMatrix(filtered) {
+      const tbody = document.getElementById('summaryBody');
+      const byType = {
+        'contenedor 1.5 m3': { op: 0, noOp: 0, sb: 0, rep: 0 },
+        'contenedor 10 m3': { op: 0, noOp: 0, sb: 0, rep: 0 },
+        'caja autocompactadora': { op: 0, noOp: 0, sb: 0, rep: 0 }
+      };
+
+      filtered.forEach(r => {
+        if (isBaseRecord(r)) {
+          const desg = r.baseDesglose || extractBaseDesgloseFromObs(r.observaciones);
+          const sumSb = ALLOWED_TYPES.reduce((a, t) => a + parseNum(desg[t]?.sb), 0);
+          const sumRep = ALLOWED_TYPES.reduce((a, t) => a + parseNum(desg[t]?.rep), 0);
+
+          if (sumSb > 0 || sumRep > 0) {
+            ALLOWED_TYPES.forEach(t => {
+              byType[t].sb += parseNum(desg[t]?.sb);
+              byType[t].rep += parseNum(desg[t]?.rep);
+            });
+          } else {
+            const key = normalizeType(r.tipo);
+            if (byType[key]) {
+              byType[key].sb += parseNum(r.standBy);
+              byType[key].rep += parseNum(r.reparacion);
+            }
+          }
+          return;
+        }
+
+        const key = normalizeType(r.tipo);
+        if (!byType[key]) return;
+        byType[key].op += parseNum(r.operativas);
+        byType[key].noOp += parseNum(r.noOperativas);
+        byType[key].sb += parseNum(r.standBy);
+        byType[key].rep += parseNum(r.reparacion);
+      });
+
+      let grandOp = 0;
+      let grandNoOp = 0;
+      let grandSb = 0;
+      let grandRep = 0;
+      let grandTotal = 0;
+
+      const rowsHtml = ALLOWED_TYPES.map(typeName => {
+        const d = byType[typeName];
+        const rowTotal = d.op + d.noOp + d.sb + d.rep;
+        grandOp += d.op;
+        grandNoOp += d.noOp;
+        grandSb += d.sb;
+        grandRep += d.rep;
+        grandTotal += rowTotal;
+
+        return `
+          <tr>
+            <td>${typeName}</td>
+            <td>${d.op}</td>
+            <td>${d.noOp}</td>
+            <td>${d.sb}</td>
+            <td>${d.rep}</td>
+            <td>${rowTotal}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const totalRowHtml = `
+        <tr class="total-row">
+          <td>Total</td>
+          <td>${grandOp}</td>
+          <td>${grandNoOp}</td>
+          <td>${grandSb}</td>
+          <td>${grandRep}</td>
+          <td>${grandTotal}</td>
+        </tr>
+      `;
+
+      tbody.innerHTML = rowsHtml + totalRowHtml;
+    }
+
+    function autoConnectDistritoFromSelection() {
+      const distSel = document.getElementById('filterDistrito');
+      if (manualDistritoSelected || distSel.value !== '') return;
+
+      const reg = document.getElementById('filterRegistro').value;
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+
+      let matchedPoint = null;
+      if (reg && reg !== '__zona__' && reg !== '__base__') {
+        matchedPoint = records.find(r => r.id === reg) || null;
+      } else if (q.length >= 2) {
+        const bySearch = records.filter(
+          r => r.id.toLowerCase().includes(q) || r.lugar.toLowerCase().includes(q)
+        );
+        if (bySearch.length === 1) matchedPoint = bySearch[0];
+      }
+
+      if (matchedPoint) {
+        const connectedDist = getEffectiveDistrito(matchedPoint);
+        if (connectedDist && [...distSel.options].some(o => o.value === connectedDist)) {
+          distSel.value = connectedDist;
+        }
+      }
+    }
+
+    function getFilteredRecords() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const reg = document.getElementById('filterRegistro').value;
+      const dist = document.getElementById('filterDistrito').value;
+      const tipo = document.getElementById('filterTipo').value;
+      const canal = document.getElementById('filterCanal').value;
+      const unid = document.getElementById('filterUnidades').value;
+      const gps = document.getElementById('filterGps').value;
+
+      return records.filter(r => {
+        if (q) {
+          const hay = [r.id, r.lugar, r.solicitadoPor, r.motivoOrden, r.tipoSolicitud, r.supervisor].join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        const esBase = isBaseRecord(r);
+        if (reg === '__zona__' && esBase) return false;
+        else if (reg === '__base__' && !esBase) return false;
+        else if (reg && reg !== '__zona__' && reg !== '__base__' && r.id !== reg) return false;
+        if (dist && getEffectiveDistrito(r) !== dist) return false;
+        if (tipo && !esBase && normalizeType(r.tipo) !== tipo) return false;
+        if (canal && r.canalSolicitud !== canal) return false;
+        if (unid === 'con_ordenes' && !hasEmacruzOrder(r)) return false;
+        if (unid === 'con_standby' && r.standBy <= 0) return false;
+        if (unid === 'con_reparacion' && r.reparacion <= 0) return false;
+        if (unid === 'con_no_op' && r.noOperativas <= 0) return false;
+        if (unid === 'todo_op' && r.noOperativas > 0) return false;
+        const hasGps = r.lat !== null && r.lng !== null;
+        if (gps === 'con_gps' && !hasGps) return false;
+        if (gps === 'sin_gps' && hasGps) return false;
+        return true;
+      });
     }
 
     function updateFilterOptions() {
-      const distSel = document.getElementById('filterDistrito');
-      const cur = distSel.value;
-      const dists = [...new Set(containers.map(c => c.distrito).filter(Boolean))].sort();
-      distSel.innerHTML = '<option value="">Todos los Distritos</option>' +
-        dists.map(d => `<option value="${d.replace(/"/g, '&quot;')}">${d}</option>`).join('');
-      distSel.value = cur;
+      const regSel = document.getElementById('filterRegistro');
+      const curReg = regSel.value;
+      const sortedRecs = [...records].sort((a, b) =>
+        String(a.id || '').localeCompare(String(b.id || ''), 'es', { numeric: true })
+      );
+      const pointOptions = sortedRecs.map(r => {
+        const label = r.lugar && r.lugar !== r.id ? `${r.id} — ${r.lugar}` : r.id;
+        return `<option value="${r.id.replace(/"/g, '&quot;')}">${label}</option>`;
+      }).join('');
 
-      const dl = document.getElementById('containerCodeList');
-      dl.innerHTML = containers.map(c => `<option value="${c.codigo}">${c.tipo} · ${c.distrito} - ${c.zona}</option>`).join('');
+      regSel.innerHTML = `
+        <option value="">Punto / Registro: Todos (${records.length})</option>
+        <option value="__zona__">📍 Solo puntos de zona</option>
+        <option value="__base__">🏭 Base de operaciones</option>
+        <optgroup label="Seleccionar punto específico">
+          ${pointOptions}
+        </optgroup>
+      `;
+      if ([...regSel.options].some(o => o.value === curReg)) {
+        regSel.value = curReg;
+      }
+
+      const distSel = document.getElementById('filterDistrito');
+      const curDist = distSel.value;
+      const dists = [...new Set(records.map(r => getEffectiveDistrito(r)).filter(v => v !== ''))].sort((a, b) => Number(a) - Number(b));
+      distSel.innerHTML = '<option value="">Todos los Distritos</option>' + dists.map(d => `<option value="${d}">${d}</option>`).join('');
+      if ([...distSel.options].some(o => o.value === curDist)) {
+        distSel.value = curDist;
+      }
     }
 
     function render() {
       updateFilterOptions();
-      const q = document.getElementById('searchInput').value.trim().toLowerCase();
-      const fTipo = document.getElementById('filterTipo').value;
-      const fEst = document.getElementById('filterEstado').value;
-      const fCan = document.getElementById('filterCanal').value;
-      const fDist = document.getElementById('filterDistrito').value;
+      autoConnectDistritoFromSelection();
+      const filtered = getFilteredRecords();
+      renderSummaryMatrix(filtered);
 
-      const filteredC = containers.filter(c => {
-        if (fTipo && c.tipo !== fTipo) return false;
-        if (fEst && c.estado !== fEst) return false;
-        if (fCan && c.canal_solicitud !== fCan) return false;
-        if (fDist && c.distrito !== fDist) return false;
-        if (q) {
-          const hay = [c.codigo, c.tipo, c.distrito, c.zona, c.ubicacion, c.estado, c.solicitado_por, c.motivo_orden, c.observaciones].join(' ').toLowerCase();
-          if (!hay.includes(q)) return false;
-        }
-        return true;
-      });
-
-      const filteredM = movements.filter(m => {
-        if (fTipo && m.tipo !== fTipo) return false;
-        if (fEst && m.estado_nuevo !== fEst) return false;
-        if (fCan && m.canal_solicitud !== fCan) return false;
-        if (fDist && m.distrito_destino !== fDist && m.distrito_origen !== fDist) return false;
-        if (q) {
-          const hay = [m.codigo, m.tipo_solicitud, m.solicitado_por, m.motivo_orden, m.ubicacion_origen, m.ubicacion_destino, m.observaciones].join(' ').toLowerCase();
-          if (!hay.includes(q)) return false;
-        }
-        return true;
-      });
-
-      document.getElementById('kpiTotal').textContent = containers.length;
-      document.getElementById('kpiOperativos').textContent = containers.filter(c => c.estado === 'Operativo').length;
-      document.getElementById('kpiDanados').textContent = containers.filter(c => c.estado === 'Reparación' || c.estado === 'Inoperativo').length;
-      document.getElementById('kpiStandby').textContent = containers.filter(c => c.estado === 'Standby').length;
-      document.getElementById('kpiOrdenesWa').textContent = movements.filter(m => m.canal_solicitud === 'WhatsApp EMACRUZ' || m.solicitado_por).length;
-
-      document.getElementById('containersBody').innerHTML = filteredC.map(c => `
-        <tr onclick="showContainerDetail('${c.id}')" style="cursor:pointer">
-          <td><strong>${c.codigo}</strong></td>
-          <td>${c.tipo}</td>
-          <td>${c.distrito || '-'}</td>
-          <td>${c.zona || '-'} · ${c.ubicacion || '-'}</td>
-          <td><span class="pill ${getEstadoClass(c.estado)}">${c.estado}</span></td>
-          <td>${c.ultimo_movimiento || '-'}</td>
-          <td>${c.solicitado_por || '—'}</td>
-          <td>${c.canal_solicitud === 'WhatsApp EMACRUZ' ? '<span class="pill pill-wa">WhatsApp EMACRUZ</span>' : (c.canal_solicitud || '-')}</td>
-          <td>${c.fecha_ejecucion || '-'}</td>
-          <td>${c.foto_contenedor ? '📷' : ''}${c.foto_orden_wa ? ' 💬' : ''}${!c.foto_contenedor && !c.foto_orden_wa ? '—' : ''}</td>
-          <td onclick="event.stopPropagation()">
-            <button type="button" onclick="openModal('order', '${c.id}')">📲 Mover / Orden</button>
-            <button type="button" onclick="openModal('edit', '${c.id}')">Editar</button>
-          </td>
-        </tr>
-      `).join('');
-
-      document.getElementById('movementsBody').innerHTML = filteredM.slice().reverse().map(m => `
-        <tr onclick="showMovementDetail('${m.id_movimiento}')" style="cursor:pointer">
-          <td>${m.fecha_solicitud || '-'}</td>
-          <td>${m.fecha_ejecucion || '-'}</td>
-          <td><strong>${m.codigo}</strong></td>
-          <td><strong>${m.tipo_solicitud}</strong></td>
-          <td>${m.canal_solicitud === 'WhatsApp EMACRUZ' ? '<span class="pill pill-wa">WhatsApp EMACRUZ</span>' : (m.canal_solicitud || '-')}</td>
-          <td>${m.solicitado_por || '-'}</td>
-          <td>${m.motivo_orden || '-'}</td>
-          <td>${m.ubicacion_origen || '-'} → <strong>${m.ubicacion_destino || '-'}</strong></td>
-          <td><span class="pill ${getEstadoClass(m.estado_nuevo)}">${m.estado_nuevo}</span></td>
-          <td>${m.foto_contenedor ? '📷' : ''}${m.foto_orden_wa ? ' 💬' : ''}${!m.foto_contenedor && !m.foto_orden_wa ? '—' : ''}</td>
-        </tr>
-      `).join('');
-    }
-
-    function showContainerDetail(id) {
-      const c = containers.find(x => x.id === id);
-      if (!c) return;
-      const box = document.getElementById('detailCard');
-      box.innerHTML = `
-        <h3>[${c.codigo}] ${c.tipo}</h3>
-        <div class="status-text">Estado: <strong>${c.estado}</strong> · Último mov.: <strong>${c.ultimo_movimiento}</strong></div>
-        <div style="margin-top:8px; font-size:0.86rem; line-height:1.55;">
-          <strong>Distrito / Zona:</strong> ${c.distrito || '-'} / ${c.zona || '-'}<br/>
-          <strong>Ubicación:</strong> ${c.ubicacion || '-'}<br/>
-          <strong>Fiscal EMACRUZ / Solicitante:</strong> ${c.solicitado_por || 'Sin orden externa'}<br/>
-          <strong>Canal:</strong> ${c.canal_solicitud || '-'}<br/>
-          <strong>Motivo:</strong> ${c.motivo_orden || '-'}<br/>
-          <strong>Fecha Solicitud:</strong> ${c.fecha_solicitud || '-'} · <strong>Ejecución:</strong> ${c.fecha_ejecucion || '-'}<br/>
-          <strong>Observaciones:</strong> ${c.observaciones || '-'}
-        </div>
-        ${c.foto_contenedor ? `<div class="msg-hint" style="margin-top:8px">Foto del Contenedor:</div><img src="${c.foto_contenedor}" alt="Foto contenedor" />` : ''}
-        ${c.foto_orden_wa ? `<div class="msg-hint" style="margin-top:8px">Captura de WhatsApp / Orden:</div><img src="${c.foto_orden_wa}" alt="Captura orden" />` : ''}
-      `;
-    }
-
-    function showMovementDetail(idMov) {
-      const m = movements.find(x => x.id_movimiento === idMov);
-      if (!m) return;
-      const box = document.getElementById('detailCard');
-      box.innerHTML = `
-        <h3>Orden: ${m.tipo_solicitud} (${m.codigo})</h3>
-        <div class="status-text">Canal: <strong>${m.canal_solicitud}</strong> · Fiscal: <strong>${m.solicitado_por || '-'}</strong></div>
-        <div style="margin-top:8px; font-size:0.86rem; line-height:1.55;">
-          <strong>Motivo:</strong> ${m.motivo_orden || '-'}<br/>
-          <strong>Origen:</strong> ${m.distrito_origen} · ${m.zona_origen} (${m.ubicacion_origen})<br/>
-          <strong>Destino:</strong> ${m.distrito_destino} · ${m.zona_destino} (${m.ubicacion_destino})<br/>
-          <strong>Estado resultante:</strong> ${m.estado_nuevo}<br/>
-          <strong>Solicitud:</strong> ${m.fecha_solicitud || '-'} · <strong>Ejecución:</strong> ${m.fecha_ejecucion || '-'}<br/>
-          <strong>Observaciones:</strong> ${m.observaciones || '-'}
-        </div>
-        ${m.foto_contenedor ? `<div class="msg-hint" style="margin-top:8px">Foto en Campo:</div><img src="${m.foto_contenedor}" alt="Foto campo" />` : ''}
-        ${m.foto_orden_wa ? `<div class="msg-hint" style="margin-top:8px">Captura de WhatsApp / Orden:</div><img src="${m.foto_orden_wa}" alt="Captura WhatsApp" />` : ''}
-      `;
-    }
-
-    function openModal(mode = 'new', id = '') {
-      const item = id ? containers.find(x => x.id === id) : null;
-      const today = todayIso();
-
-      document.getElementById('fMode').value = mode;
-      document.getElementById('fId').value = item ? item.id : '';
-      document.getElementById('btnDeleteContainer').style.display = (item && mode === 'edit') ? 'inline-flex' : 'none';
-
-      if (mode === 'order') {
-        document.getElementById('modalTitle').textContent = item
-          ? `Registrar Orden EMACRUZ / Movimiento — ${item.codigo}`
-          : 'Registrar Orden EMACRUZ / Movimiento por WhatsApp';
-      } else if (mode === 'edit' && item) {
-        document.getElementById('modalTitle').textContent = `Editar Contenedor — ${item.codigo}`;
-      } else {
-        document.getElementById('modalTitle').textContent = 'Registrar Nuevo Contenedor';
+      if (filtered.length === 1) {
+        renderDetail(filtered[0]);
       }
 
-      document.getElementById('fCodigo').value = item ? item.codigo : '';
-      document.getElementById('fTipo').value = item ? item.tipo : '1.5 m³';
-      document.getElementById('fDistrito').value = item ? item.distrito : '';
-      document.getElementById('fZona').value = item ? item.zona : '';
-      document.getElementById('fUbicacion').value = item ? item.ubicacion : '';
-      document.getElementById('fEstado').value = item ? item.estado : 'Operativo';
-      document.getElementById('fObservaciones').value = item ? item.observaciones : '';
+      const totalPuntos = filtered.length;
+      const conGps = filtered.filter(r => r.lat !== null && r.lng !== null).length;
+      const op = filtered.reduce((acc, r) => acc + parseNum(r.operativas), 0);
+      const sb = filtered.reduce((acc, r) => acc + parseNum(r.standBy), 0);
+      const rep = filtered.reduce((acc, r) => acc + parseNum(r.reparacion), 0);
+      const noOp = filtered.reduce((acc, r) => acc + parseNum(r.noOperativas), 0);
+      const totalUnid = op + noOp + sb + rep;
+      const novedad = filtered.filter(r => parseNum(r.noOperativas) > 0).length;
+      const ordenesEmacruz = filtered.filter(r => hasEmacruzOrder(r)).length;
+      const conFoto = filtered.filter(r => Boolean(r.foto) || Boolean(r.fotoOrdenWa)).length;
 
-      document.getElementById('fTipoSolicitud').value = mode === 'order' ? 'Mover / Reubicar' : (item ? item.ultimo_movimiento : 'Alta / Inventario');
-      document.getElementById('fCanalSolicitud').value = mode === 'order' ? 'WhatsApp EMACRUZ' : (item ? item.canal_solicitud : 'Interno');
-      document.getElementById('fSolicitadoPor').value = mode === 'order' ? '' : (item ? item.solicitado_por : '');
-      document.getElementById('fMotivoOrden').value = mode === 'order' ? '' : (item ? item.motivo_orden : '');
-      document.getElementById('fFechaSolicitud').value = today;
+      document.getElementById('kpiPuntos').textContent = totalPuntos;
+      document.getElementById('kpiGps').textContent = `${conGps} con GPS`;
+      document.getElementById('kpiUnidades').textContent = totalUnid;
+      document.getElementById('kpiOpNoOp').textContent = `${op} op. / ${noOp} inop.`;
+      document.getElementById('kpiOperativas').textContent = op;
+      document.getElementById('kpiStandBy').textContent = sb;
+      document.getElementById('kpiReparacion').textContent = rep;
+      document.getElementById('kpiNoOperativas').textContent = noOp;
+      document.getElementById('kpiNovedad').textContent = `${novedad} puntos con novedad`;
+      document.getElementById('kpiOrdenesEmacruz').textContent = ordenesEmacruz;
+      document.getElementById('kpiFotos').textContent = conFoto;
+
+      markersLayer.clearLayers();
+      const bounds = [];
+      filtered.forEach(r => {
+        if (r.lat !== null && r.lng !== null) {
+          const marker = L.circleMarker([r.lat, r.lng], {
+            radius: isBaseRecord(r) ? 9 : 7,
+            fillColor: getMarkerColor(r.tipo),
+            color: isBaseRecord(r) ? '#c084fc' : '#ffffff',
+            weight: isBaseRecord(r) ? 2.5 : 1.5,
+            opacity: 1,
+            fillOpacity: 0.9
+          });
+          const estCalc = calculateStatus(r);
+          const ordenLine = hasEmacruzOrder(r) ? `<br/>📲 ${r.tipoSolicitud} (${r.solicitadoPor || r.canalSolicitud})` : '';
+          marker.bindPopup(`<strong>${r.id}</strong><br/>${r.lugar}<br/>${r.tipo} (${estCalc})<br/>Op: ${r.operativas} | Inop: ${r.noOperativas}<br/>Stand by: ${r.standBy} | Rep: ${r.reparacion}${ordenLine}`);
+          marker.on('click', () => renderDetail(r));
+          marker.addTo(markersLayer);
+          bounds.push([r.lat, r.lng]);
+        }
+      });
+      if (bounds.length > 0) {
+        map.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
+      }
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = filtered.map(r => {
+        const hasGps = r.lat !== null && r.lng !== null;
+        const esBase = isBaseRecord(r);
+        const pillClass = r.noOperativas > 0 ? 'pill-bad' : 'pill-ok';
+        const estCalc = calculateStatus(r);
+        const estPillClass = getStatusPillClass(estCalc);
+        const totalRow = calculateTotalUnits(r);
+        const tipoCol = esBase ? '3 tipos (Garaje)' : r.tipo;
+        const distCol = getEffectiveDistrito(r) || '-';
+        const unidBadge = esBase
+          ? `<span class="pill pill-base">${r.standBy} SB / ${r.reparacion} Rep</span>`
+          : `<span class="pill ${pillClass}">${r.operativas} op / ${r.noOperativas} inop</span>`;
+        const ordenBadge = hasEmacruzOrder(r)
+          ? `<span class="pill pill-wa">${r.canalSolicitud === 'WhatsApp EMACRUZ' ? 'WA' : 'EMACRUZ'}: ${r.solicitadoPor || r.tipoSolicitud}</span>`
+          : '—';
+        const fotoBadge = `${r.foto ? '📷' : ''}${r.fotoOrdenWa ? ' 💬' : ''}` || '—';
+
+        return `
+          <tr onclick="renderDetail(records.find(x => x.id === '${r.id.replace(/'/g, "\\'")}'))" style="cursor:pointer">
+            <td><strong>${r.id}</strong></td>
+            <td>${r.lugar} ${esBase ? '<span class="pill pill-base">BASE</span>' : ''}</td>
+            <td>${distCol}</td>
+            <td>${tipoCol}</td>
+            <td>${unidBadge}</td>
+            <td><strong>${totalRow}</strong></td>
+            <td>${ordenBadge}</td>
+            <td>${hasGps ? '📍 Sí' : '—'}</td>
+            <td><span class="pill ${estPillClass}">${estCalc}</span></td>
+            <td>${fotoBadge}</td>
+            <td onclick="event.stopPropagation()"><button type="button" onclick="openEditModal('${r.id.replace(/'/g, "\\'")}', false, false)">Editar</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function mergeServerAndLocal(serverList, localList) {
+      const mapById = new Map();
+
+      localList.forEach(item => {
+        const norm = normalizeRecord(item);
+        if (norm.id) mapById.set(norm.id, norm);
+      });
+
+      const now = Date.now();
+      let pendingChanged = false;
+
+      serverList.forEach(item => {
+        const norm = normalizeRecord(item);
+        if (!norm.id) return;
+        const prev = mapById.get(norm.id);
+        const pendingEntry = pendingMap[norm.id];
+        const pendingRec = (pendingEntry && pendingEntry.expiresAt > now)
+          ? normalizeRecord(pendingEntry.record)
+          : null;
+        const backupCounts = countsBackup[norm.id] || null;
+
+        const refLocal = pendingRec || prev || (backupCounts ? normalizeRecord({ id: norm.id, ...backupCounts }) : null);
+
+        const keepLocalPhoto = refLocal && refLocal.foto && !norm.foto;
+        const keepLocalWaPhoto = refLocal && refLocal.fotoOrdenWa && !norm.fotoOrdenWa;
+        const serverHasGps = norm.lat !== null && norm.lng !== null;
+        const refHasGps = refLocal && refLocal.lat !== null && refLocal.lng !== null;
+
+        const finalOp = (norm.operativas === 0 && refLocal && refLocal.operativas > 0)
+          ? refLocal.operativas
+          : norm.operativas;
+        const finalNoOp = (norm.noOperativas === 0 && refLocal && refLocal.noOperativas > 0)
+          ? refLocal.noOperativas
+          : norm.noOperativas;
+        const finalStandBy = (norm.standBy === 0 && refLocal && refLocal.standBy > 0)
+          ? refLocal.standBy
+          : norm.standBy;
+        const finalRep = (norm.reparacion === 0 && refLocal && refLocal.reparacion > 0)
+          ? refLocal.reparacion
+          : norm.reparacion;
+
+        const mergedDesglose = norm.baseDesglose || (refLocal && refLocal.baseDesglose) || null;
+
+        const merged = {
+          ...norm,
+          operativas: finalOp,
+          noOperativas: finalNoOp,
+          standBy: finalStandBy,
+          reparacion: finalRep,
+          baseDesglose: mergedDesglose,
+          tipoSolicitud: norm.tipoSolicitud !== 'Operativo / Rutina' ? norm.tipoSolicitud : (refLocal?.tipoSolicitud || norm.tipoSolicitud),
+          canalSolicitud: norm.canalSolicitud !== 'Interno' ? norm.canalSolicitud : (refLocal?.canalSolicitud || norm.canalSolicitud),
+          solicitadoPor: norm.solicitadoPor || refLocal?.solicitadoPor || '',
+          motivoOrden: norm.motivoOrden || refLocal?.motivoOrden || '',
+          fechaSolicitud: norm.fechaSolicitud || refLocal?.fechaSolicitud || '',
+          fechaEjecucion: norm.fechaEjecucion || refLocal?.fechaEjecucion || '',
+          fotoOrdenWa: keepLocalWaPhoto ? refLocal.fotoOrdenWa : norm.fotoOrdenWa,
+          lat: serverHasGps ? norm.lat : (refHasGps ? refLocal.lat : null),
+          lng: serverHasGps ? norm.lng : (refHasGps ? refLocal.lng : null),
+          foto: keepLocalPhoto ? refLocal.foto : norm.foto
+        };
+        merged.cantidad = calculateTotalUnits(merged);
+        merged.estado = calculateStatus(merged);
+        recordCountsInBackup(merged);
+        mapById.set(norm.id, merged);
+
+        if (pendingRec) {
+          const syncedOk =
+            norm.operativas === pendingRec.operativas &&
+            norm.noOperativas === pendingRec.noOperativas &&
+            norm.standBy === pendingRec.standBy &&
+            norm.reparacion === pendingRec.reparacion &&
+            (!pendingRec.foto || Boolean(norm.foto)) &&
+            (pendingRec.lat === null || norm.lat !== null);
+
+          if (syncedOk) {
+            delete pendingMap[norm.id];
+            pendingChanged = true;
+          }
+        }
+      });
+
+      Object.keys(pendingMap).forEach(id => {
+        const entry = pendingMap[id];
+        if (!entry || entry.expiresAt <= now) {
+          delete pendingMap[id];
+          pendingChanged = true;
+          return;
+        }
+        if (!mapById.has(id)) {
+          const pRec = normalizeRecord(entry.record);
+          pRec.cantidad = calculateTotalUnits(pRec);
+          pRec.estado = calculateStatus(pRec);
+          mapById.set(id, pRec);
+        }
+      });
+
+      if (pendingChanged) savePending();
+      return Array.from(mapById.values());
+    }
+
+    async function syncFromSheets() {
+      setStatus('Sincronizando desde Google Sheets...');
+      try {
+        const url = `${API_URL}?t=${Date.now()}`;
+        const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseErr) {
+          throw new Error('Apps Script devolvió HTML en lugar de JSON (revisa permisos o vinculación a la hoja)');
+        }
+        if (!data.ok) throw new Error(data.error || 'Respuesta inválida');
+
+        const rawList = Array.isArray(data.records) ? data.records : [];
+        lastRawSample = rawList.length > 0 ? rawList[0] : { note: 'Hoja vacía' };
+
+        const serverRecords = rawList.map(normalizeRecord).filter(r => r.id || r.lugar);
+
+        if (serverRecords.length > 0) {
+          records = mergeServerAndLocal(serverRecords, records);
+          saveLocal();
+          render();
+          setStatus(`Sincronizado: ${serverRecords.length} en nube · ${records.length} activos (${new Date().toLocaleTimeString()})`);
+        } else {
+          records = mergeServerAndLocal([], records);
+          saveLocal();
+          render();
+          setStatus(`La hoja devolvió 0 registros. Se conservan ${records.length} registros locales.`);
+        }
+      } catch (err) {
+        records = mergeServerAndLocal([], records);
+        saveLocal();
+        render();
+        setStatus(`Error al sincronizar (se conservan ${records.length} locales): ${err.message}`, true);
+      }
+    }
+
+    async function postToSheets(payload, useNoCors = false) {
+      if (useNoCors) {
+        await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        return { ok: true };
+      }
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error('Apps Script no devolvió JSON válido al guardar');
+      }
+      if (!data.ok) throw new Error(data.error || 'Error interno en Apps Script');
+      return data;
+    }
+
+    async function seedToSheets() {
+      if (!isAdminUnlocked) return;
+      if (!records.length) {
+        setStatus('No hay registros para subir. Carga o agrega puntos primero.', true);
+        return;
+      }
+
+      const firstOk = confirm(
+        '⚠️ ATENCIÓN: "Subir a Nube" reemplazará los datos de la hoja en Google Sheets con los ' +
+        records.length + ' registros cargados en este dispositivo.\n\n' +
+        'Para editar o crear puntos en campo normalmente solo debes usar "Guardar y Sincronizar".\n\n' +
+        '¿Deseas continuar?'
+      );
+      if (!firstOk) {
+        setStatus('Subida masiva cancelada.');
+        return;
+      }
+
+      const code = prompt('Escribe SUBIR en mayúsculas para confirmar que deseas sobrescribir la base en la nube:');
+      if (code !== 'SUBIR') {
+        setStatus('Subida masiva cancelada (confirmación no coincide).');
+        return;
+      }
+
+      const batchSize = 25;
+      try {
+        for (let i = 0; i < records.length; i += batchSize) {
+          const chunk = records.slice(i, i + batchSize);
+          const action = i === 0 ? 'seed' : 'append_batch';
+          setStatus(`Subiendo lote ${Math.floor(i / batchSize) + 1} (${Math.min(i + chunk.length, records.length)}/${records.length})...`);
+          await postToSheets({ action, records: chunk }, true);
+          await new Promise(r => setTimeout(r, 900));
+        }
+        setStatus('Envío completado. Verificando datos en Google Sheets...');
+        setTimeout(syncFromSheets, 2500);
+      } catch (err) {
+        setStatus(`Error al subir base: ${err.message}`, true);
+      }
+    }
+
+    function openEditModal(id = '', forceBase = false, isEmacruzOrder = false) {
+      const rec = id ? records.find(r => r.id === id) : null;
+      const esBase = rec ? isBaseRecord(rec) : Boolean(forceBase);
+      const hintEl = document.getElementById('fIdHint');
+      const suggestedId = rec ? rec.id : getNextCorrelativeId(esBase);
+      const today = todayIso();
+
+      setGpsMsg('');
+      setPhotoMsg('');
+      setWaPhotoMsg('');
+
+      if (rec) {
+        document.getElementById('modalTitle').textContent = isEmacruzOrder
+          ? `Orden EMACRUZ / WA — ${rec.id}`
+          : (esBase ? `Editar Base / Garaje ${rec.id}` : `Editar Punto ${rec.id}`);
+      } else if (isEmacruzOrder) {
+        document.getElementById('modalTitle').textContent = 'Registrar Orden EMACRUZ / Solicitud por WhatsApp';
+      } else {
+        document.getElementById('modalTitle').textContent = esBase ? 'Base de Operaciones (Garaje)' : 'Nuevo Punto de Contenedores';
+      }
+
+      document.getElementById('fId').value = suggestedId;
+      document.getElementById('fEsBase').value = esBase ? '1' : '0';
+      toggleBaseFieldsVisibility();
+
+      if (!rec) {
+        hintEl.textContent = esBase
+          ? `Garaje único: carga aquí Stand by y Reparación para los 3 tipos.`
+          : `Correlativo sugerido automáticamente (${suggestedId}). Puedes editarlo si lo necesitas.`;
+        hintEl.style.display = 'block';
+      } else {
+        hintEl.textContent = '';
+        hintEl.style.display = 'none';
+      }
+
+      const desg = rec
+        ? (rec.baseDesglose || extractBaseDesgloseFromObs(rec.observaciones))
+        : emptyBaseDesglose();
+
+      if (rec && esBase && !rec.baseDesglose && !rec.observaciones.includes('[BASE_DESGLOSE:')) {
+        if (rec.standBy > 0 || rec.reparacion > 0) {
+          const tKey = normalizeType(rec.tipo);
+          desg[tKey] = { sb: rec.standBy, rep: rec.reparacion };
+        }
+      }
+
+      document.getElementById('sb_1_5').value = desg['contenedor 1.5 m3']?.sb ?? 0;
+      document.getElementById('rep_1_5').value = desg['contenedor 1.5 m3']?.rep ?? 0;
+      document.getElementById('sb_10').value = desg['contenedor 10 m3']?.sb ?? 0;
+      document.getElementById('rep_10').value = desg['contenedor 10 m3']?.rep ?? 0;
+      document.getElementById('sb_ac').value = desg['caja autocompactadora']?.sb ?? 0;
+      document.getElementById('rep_ac').value = desg['caja autocompactadora']?.rep ?? 0;
+
+      document.getElementById('fDistrito').value = rec ? rec.distrito : '';
+      document.getElementById('fLugar').value = rec ? rec.lugar : (esBase ? 'Base de Operaciones' : '');
+      document.getElementById('fTipo').value = rec ? normalizeType(rec.tipo) : 'contenedor 1.5 m3';
+      document.getElementById('fOperativas').value = rec ? rec.operativas : 0;
+      document.getElementById('fNoOperativas').value = rec ? rec.noOperativas : 0;
+
+      document.getElementById('fTipoSolicitud').value = isEmacruzOrder
+        ? 'Mover / Reubicar'
+        : (rec?.tipoSolicitud || 'Operativo / Rutina');
+      document.getElementById('fCanalSolicitud').value = isEmacruzOrder
+        ? 'WhatsApp EMACRUZ'
+        : (rec?.canalSolicitud || 'Interno');
+      document.getElementById('fSolicitadoPor').value = isEmacruzOrder
+        ? ''
+        : (rec?.solicitadoPor || '');
+      document.getElementById('fMotivoOrden').value = isEmacruzOrder
+        ? ''
+        : (rec?.motivoOrden || '');
+      document.getElementById('fFechaSolicitud').value = rec?.fechaSolicitud || today;
       document.getElementById('fFechaEjecucion').value = today;
-
-      document.getElementById('fFotoContenedor').value = (item && mode === 'edit') ? item.foto_contenedor : '';
-      document.getElementById('fFotoOrdenWa').value = (item && mode === 'edit') ? item.foto_orden_wa : '';
-      document.getElementById('fFotoContenedorFile').value = '';
+      document.getElementById('fFotoOrdenWa').value = rec?.fotoOrdenWa || '';
       document.getElementById('fFotoOrdenWaFile').value = '';
-      document.getElementById('fotoMsg').textContent = '';
 
+      document.getElementById('fLat').value = rec && rec.lat !== null ? rec.lat : '';
+      document.getElementById('fLng').value = rec && rec.lng !== null ? rec.lng : '';
+      document.getElementById('fSupervisor').value = rec ? rec.supervisor : '';
+      document.getElementById('fFoto').value = rec ? rec.foto : '';
+      document.getElementById('fFotoFile').value = '';
+      document.getElementById('fObservaciones').value = rec ? stripMetaTags(rec.observaciones) : '';
       document.getElementById('modalBackdrop').classList.add('open');
     }
 
@@ -892,88 +2023,100 @@
       document.getElementById('modalBackdrop').classList.remove('open');
     }
 
-    document.getElementById('fCodigo').addEventListener('change', (e) => {
-      const code = e.target.value.trim().toUpperCase();
-      const existing = containers.find(c => c.codigo === code);
-      if (existing && !document.getElementById('fId').value) {
-        document.getElementById('fId').value = existing.id;
-        document.getElementById('fTipo').value = existing.tipo;
-        document.getElementById('fDistrito').value = existing.distrito;
-        document.getElementById('fZona').value = existing.zona;
-        document.getElementById('fUbicacion').value = existing.ubicacion;
-        document.getElementById('fEstado').value = existing.estado;
-      }
+    function openDebugModal() {
+      if (!isAdminUnlocked) return;
+      const sampleWithoutPhoto = lastRawSample
+        ? Object.fromEntries(
+            Object.entries(lastRawSample).map(([k, v]) => [
+              k,
+              typeof v === 'string' && v.startsWith('data:image') ? `[base64 ${v.length} chars]` : v
+            ])
+          )
+        : null;
+
+      document.getElementById('debugOutput').textContent = JSON.stringify(
+        {
+          primerRegistroHoja: sampleWithoutPhoto,
+          respaldoCantidadesLocal: countsBackup
+        },
+        null,
+        2
+      );
+      document.getElementById('debugBackdrop').classList.add('open');
+    }
+
+    document.getElementById('btnAdminToggle').addEventListener('click', handleAdminToggle);
+    document.getElementById('fEsBase').addEventListener('change', toggleBaseFieldsVisibility);
+    document.getElementById('btnDebug').addEventListener('click', openDebugModal);
+    document.getElementById('btnCloseDebug').addEventListener('click', () => {
+      document.getElementById('debugBackdrop').classList.remove('open');
     });
 
-    document.getElementById('fTipoSolicitud').addEventListener('change', (e) => {
-      const val = e.target.value;
-      const estSel = document.getElementById('fEstado');
-      if (val === 'Retiro Temporal') estSel.value = 'Standby';
-      if (val === 'Retiro Definitivo') estSel.value = 'Inoperativo';
-    });
+    document.getElementById('btnGetGps').addEventListener('click', captureCurrentGps);
 
-    document.getElementById('fFotoContenedorFile').addEventListener('change', async (e) => {
+    document.getElementById('fFotoFile').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      document.getElementById('fotoMsg').textContent = 'Optimizando foto del contenedor...';
+      setPhotoMsg('Optimizando imagen para ahorrar espacio...');
       try {
-        document.getElementById('fFotoContenedor').value = await compressImage(file);
-        document.getElementById('fotoMsg').textContent = 'Foto del contenedor lista.';
+        const compressed = await compressImageFile(file, 800, 0.65);
+        document.getElementById('fFoto').value = compressed.dataUrl;
+        const origKb = Math.round(file.size / 1024);
+        setPhotoMsg(`Optimizada: ${origKb} KB → ~${compressed.approxKb} KB (${compressed.width}x${compressed.height} px).`);
       } catch (err) {
-        document.getElementById('fotoMsg').textContent = err.message;
+        setPhotoMsg(err.message, true);
       }
     });
 
     document.getElementById('fFotoOrdenWaFile').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      document.getElementById('fotoMsg').textContent = 'Optimizando captura de WhatsApp...';
+      setWaPhotoMsg('Optimizando captura de WhatsApp / orden...');
       try {
-        document.getElementById('fFotoOrdenWa').value = await compressImage(file);
-        document.getElementById('fotoMsg').textContent = 'Captura de WhatsApp lista.';
+        const compressed = await compressImageFile(file, 800, 0.65);
+        document.getElementById('fFotoOrdenWa').value = compressed.dataUrl;
+        const origKb = Math.round(file.size / 1024);
+        setWaPhotoMsg(`Captura lista: ${origKb} KB → ~${compressed.approxKb} KB.`);
       } catch (err) {
-        document.getElementById('fotoMsg').textContent = err.message;
+        setWaPhotoMsg(err.message, true);
       }
     });
 
-    async function postToSheets(payload) {
-      if (!API_URL || API_URL.includes('PEGA_AQUI_TU_URL')) return;
-      await fetch(API_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      });
-    }
-
-    async function syncFromSheets() {
-      if (!API_URL || API_URL.includes('PEGA_AQUI_TU_URL')) {
-        setStatus('Modo local activo · Configura API_URL con la URL /exec de tu Apps Script.');
-        render();
-        return;
-      }
-      setStatus('Sincronizando contenedores y órdenes EMACRUZ...');
-      try {
-        const res = await fetch(`${API_URL}?t=${Date.now()}`, { method: 'GET', redirect: 'follow' });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || 'Error de servidor');
-        containers = (Array.isArray(data.containers) ? data.containers : []).map(normalizeContainer);
-        movements = (Array.isArray(data.movements) ? data.movements : []).map(normalizeMovement);
-        saveLocal();
-        render();
-        setStatus(`Sincronizado: ${containers.length} contenedores · ${movements.length} movimientos (${new Date().toLocaleTimeString()})`);
-      } catch (err) {
-        setStatus(`Error al sincronizar: ${err.message}`, true);
-      }
-    }
-
-    document.getElementById('containerForm').addEventListener('submit', async (e) => {
+    document.getElementById('pointForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const existingId = document.getElementById('fId').value.trim();
-      const code = document.getElementById('fCodigo').value.trim().toUpperCase();
-      const prev = containers.find(x => x.id === existingId) || containers.find(x => x.codigo === code) || null;
-      const id = prev ? prev.id : ('CNT-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5));
+      const esBase = document.getElementById('fEsBase').value === '1';
+
+      let op = 0;
+      let noOp = 0;
+      let standBy = 0;
+      let reparacion = 0;
+      let baseDesglose = null;
+      let tipoFinal = normalizeType(document.getElementById('fTipo').value);
+      let obsFinal = document.getElementById('fObservaciones').value.trim();
+
+      if (esBase) {
+        baseDesglose = {
+          'contenedor 1.5 m3': {
+            sb: Number(document.getElementById('sb_1_5').value) || 0,
+            rep: Number(document.getElementById('rep_1_5').value) || 0
+          },
+          'contenedor 10 m3': {
+            sb: Number(document.getElementById('sb_10').value) || 0,
+            rep: Number(document.getElementById('rep_10').value) || 0
+          },
+          'caja autocompactadora': {
+            sb: Number(document.getElementById('sb_ac').value) || 0,
+            rep: Number(document.getElementById('rep_ac').value) || 0
+          }
+        };
+        standBy = ALLOWED_TYPES.reduce((acc, t) => acc + baseDesglose[t].sb, 0);
+        reparacion = ALLOWED_TYPES.reduce((acc, t) => acc + baseDesglose[t].rep, 0);
+        tipoFinal = 'contenedor 1.5 m3';
+        obsFinal = attachBaseDesgloseTag(obsFinal, baseDesglose, standBy, reparacion);
+      } else {
+        op = Number(document.getElementById('fOperativas').value) || 0;
+        noOp = Number(document.getElementById('fNoOperativas').value) || 0;
+      }
 
       const tipoSolicitud = document.getElementById('fTipoSolicitud').value;
       const canalSolicitud = document.getElementById('fCanalSolicitud').value;
@@ -981,160 +2124,171 @@
       const motivoOrden = document.getElementById('fMotivoOrden').value;
       const fechaSolicitud = document.getElementById('fFechaSolicitud').value;
       const fechaEjecucion = document.getElementById('fFechaEjecucion').value;
+      const fotoOrdenWa = document.getElementById('fFotoOrdenWa').value.trim();
 
-      const updatedContainer = normalizeContainer({
-        id,
-        codigo: code,
-        tipo: document.getElementById('fTipo').value,
+      if (!esBase && tipoSolicitud === 'Retiro Temporal' && standBy === 0 && op > 0) {
+        standBy = op;
+        op = 0;
+      }
+
+      const emacruzMeta = {
+        tipoSolicitud,
+        canalSolicitud,
+        solicitadoPor,
+        motivoOrden,
+        fechaSolicitud,
+        fechaEjecucion,
+        fotoOrdenWa
+      };
+      obsFinal = attachEmacruzTag(obsFinal, emacruzMeta);
+
+      const latRaw = document.getElementById('fLat').value.trim();
+      const lngRaw = document.getElementById('fLng').value.trim();
+
+      const rawIdInput = document.getElementById('fId').value.trim();
+      const rawLugarInput = document.getElementById('fLugar').value.trim();
+      const finalId = rawIdInput || (esBase ? (rawLugarInput || 'Base de Operaciones') : '');
+      const finalLugar = rawLugarInput || (esBase ? 'Base de Operaciones' : finalId);
+
+      const updated = normalizeRecord({
+        id: finalId,
+        lugar: finalLugar,
         distrito: document.getElementById('fDistrito').value.trim(),
-        zona: document.getElementById('fZona').value.trim(),
-        ubicacion: document.getElementById('fUbicacion').value.trim(),
-        estado: document.getElementById('fEstado').value,
-        ultimo_movimiento: tipoSolicitud,
-        solicitado_por: solicitadoPor,
-        canal_solicitud: canalSolicitud,
-        motivo_orden: motivoOrden,
-        fecha_solicitud: fechaSolicitud,
-        fecha_ejecucion: fechaEjecucion,
-        observaciones: document.getElementById('fObservaciones').value.trim(),
-        foto_contenedor: document.getElementById('fFotoContenedor').value.trim() || (prev ? prev.foto_contenedor : ''),
-        foto_orden_wa: document.getElementById('fFotoOrdenWa').value.trim() || (prev ? prev.foto_orden_wa : ''),
-        actualizado: new Date().toLocaleString()
+        cantidad: op + noOp + standBy + reparacion,
+        operativas: op,
+        noOperativas: noOp,
+        standBy,
+        reparacion,
+        baseDesglose,
+        tipoSolicitud,
+        canalSolicitud,
+        solicitadoPor,
+        motivoOrden,
+        fechaSolicitud,
+        fechaEjecucion,
+        fotoOrdenWa,
+        tipo: tipoFinal,
+        lat: latRaw === '' ? null : Number(latRaw),
+        lng: lngRaw === '' ? null : Number(lngRaw),
+        supervisor: document.getElementById('fSupervisor').value.trim(),
+        observaciones: obsFinal,
+        foto: document.getElementById('fFoto').value.trim(),
+        ultimaActualizacion: new Date().toLocaleString()
       });
 
-      const movementLog = normalizeMovement({
-        id_movimiento: 'MOV-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
-        id_contenedor: id,
-        codigo: updatedContainer.codigo,
-        tipo: updatedContainer.tipo,
-        distrito_origen: prev ? prev.distrito : updatedContainer.distrito,
-        zona_origen: prev ? prev.zona : updatedContainer.zona,
-        ubicacion_origen: prev ? prev.ubicacion : 'Alta inicial',
-        distrito_destino: updatedContainer.distrito,
-        zona_destino: updatedContainer.zona,
-        ubicacion_destino: updatedContainer.ubicacion,
-        estado_nuevo: updatedContainer.estado,
-        tipo_solicitud: tipoSolicitud,
-        canal_solicitud: canalSolicitud,
-        solicitado_por: solicitadoPor,
-        motivo_orden: motivoOrden,
-        fecha_solicitud: fechaSolicitud,
-        fecha_ejecucion: fechaEjecucion,
-        observaciones: updatedContainer.observaciones,
-        foto_contenedor: updatedContainer.foto_contenedor,
-        foto_orden_wa: updatedContainer.foto_orden_wa,
-        actualizado: new Date().toLocaleString()
-      });
+      recordCountsInBackup(updated);
 
-      const idx = containers.findIndex(x => x.id === id);
-      if (idx >= 0) containers[idx] = updatedContainer;
-      else containers.push(updatedContainer);
+      const idx = records.findIndex(r => r.id === updated.id);
+      if (idx >= 0) records[idx] = updated;
+      else records.push(updated);
 
-      movements.push(movementLog);
+      pendingMap[updated.id] = {
+        record: updated,
+        expiresAt: Date.now() + 300000
+      };
+      savePending();
       saveLocal();
       render();
-      showContainerDetail(id);
+      renderDetail(updated);
       closeModal();
 
-      setStatus(`Guardado ${updatedContainer.codigo} (${tipoSolicitud}). Sincronizando con Google Sheets...`);
+      setStatus(`Guardado local de ${updated.id} (${updated.estado}). Enviando a Google Sheets...`);
       try {
-        await postToSheets({
-          action: 'upsert_container',
-          container: updatedContainer,
-          movement: movementLog
-        });
-        setTimeout(syncFromSheets, 3000);
+        await postToSheets({ action: 'upsert', record: updated }, true);
+        setTimeout(syncFromSheets, 6000);
       } catch (err) {
         setStatus(`Guardado local; error en nube: ${err.message}`, true);
       }
     });
 
-    document.getElementById('btnDeleteContainer').addEventListener('click', async () => {
-      const id = document.getElementById('fId').value;
-      if (!id) return;
-      if (!confirm('¿Eliminar este contenedor del inventario?')) return;
-      containers = containers.filter(x => x.id !== id);
-      saveLocal();
-      render();
-      closeModal();
-      setStatus('Contenedor eliminado localmente. Sincronizando...');
-      try {
-        await postToSheets({ action: 'delete_container', id });
-      } catch (err) {}
-    });
+    document.getElementById('btnNew').addEventListener('click', () => openEditModal('', false, false));
+    document.getElementById('btnNewEmacruz').addEventListener('click', () => openEditModal('', false, true));
+    document.getElementById('btnNewBase').addEventListener('click', () => openEditModal('', true, false));
+    document.getElementById('btnCancelModal').addEventListener('click', closeModal);
+    document.getElementById('btnSync').addEventListener('click', syncFromSheets);
+    document.getElementById('btnSeed').addEventListener('click', seedToSheets);
 
-    document.getElementById('tabContainers').addEventListener('click', () => {
-      activeTab = 'containers';
-      document.getElementById('tabContainers').classList.add('active');
-      document.getElementById('tabMovements').classList.remove('active');
-      document.getElementById('viewContainers').style.display = 'block';
-      document.getElementById('viewMovements').style.display = 'none';
-    });
-
-    document.getElementById('tabMovements').addEventListener('click', () => {
-      activeTab = 'movements';
-      document.getElementById('tabMovements').classList.add('active');
-      document.getElementById('tabContainers').classList.remove('active');
-      document.getElementById('viewContainers').style.display = 'none';
-      document.getElementById('viewMovements').style.display = 'block';
-    });
-
-    document.getElementById('btnAdminToggle').addEventListener('click', () => {
-      if (isAdminUnlocked) {
-        isAdminUnlocked = false;
-        sessionStorage.removeItem(ADMIN_SESSION_KEY);
-      } else {
-        const pin = prompt('Ingresa el PIN de administrador:');
-        if (pin !== ADMIN_PIN) return setStatus('PIN incorrecto.', true);
-        isAdminUnlocked = true;
-        sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
-      }
-      document.getElementById('adminTools').classList.toggle('unlocked', isAdminUnlocked);
-      document.getElementById('btnAdminToggle').classList.toggle('unlocked', isAdminUnlocked);
-      document.getElementById('btnAdminToggle').textContent = isAdminUnlocked ? '🔓 Bloquear Admin' : '🔒 Admin';
-      document.getElementById('adminBadge').classList.toggle('active', isAdminUnlocked);
-    });
-
-    document.getElementById('btnExportCsv').addEventListener('click', () => {
-      const headers = ['ID_MOVIMIENTO', 'FECHA_SOLICITUD', 'FECHA_EJECUCION', 'CODIGO', 'TIPO', 'TIPO_SOLICITUD', 'CANAL_SOLICITUD', 'SOLICITADO_POR', 'MOTIVO_ORDEN', 'UBICACION_ORIGEN', 'UBICACION_DESTINO', 'ESTADO_NUEVO', 'OBSERVACIONES'];
-      const rows = movements.map(m => [
-        m.id_movimiento, m.fecha_solicitud, m.fecha_ejecucion, m.codigo, m.tipo, m.tipo_solicitud, m.canal_solicitud, m.solicitado_por, m.motivo_orden, m.ubicacion_origen, m.ubicacion_destino, m.estado_nuevo, m.observaciones
+    document.getElementById('btnCsv').addEventListener('click', () => {
+      if (!isAdminUnlocked) return;
+      const headers = ['ID','LUGAR','DISTRITO','OPERABLES','INOPERABLES','STAND BY (EN BASE)','REPARACION (EN BASE/TALLER)','TOTAL','TIPO','TIPO_SOLICITUD','CANAL_SOLICITUD','SOLICITADO_POR','MOTIVO_ORDEN','FECHA_SOLICITUD','FECHA_EJECUCION','LAT','LNG','ESTADO','SUPERVISOR','OBSERVACIONES','FOTO','FOTO_ORDEN_WA','ULTIMA ACTUALIZACIÓN'];
+      const rows = records.map(r => [
+        r.id, r.lugar, r.distrito, r.operativas, r.noOperativas, r.standBy, r.reparacion,
+        calculateTotalUnits(r), r.tipo, r.tipoSolicitud, r.canalSolicitud, r.solicitadoPor,
+        r.motivoOrden, r.fechaSolicitud, r.fechaEjecucion, r.lat ?? '', r.lng ?? '',
+        calculateStatus(r), r.supervisor, stripMetaTags(r.observaciones), r.foto,
+        r.fotoOrdenWa, r.ultimaActualizacion
       ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
       const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'historial_ordenes_emacruz.csv';
+      a.download = 'contenedores_pirai.csv';
       a.click();
     });
 
-    document.getElementById('btnWipeAll').addEventListener('click', async () => {
-      if (!confirm('¿Borrar todos los contenedores y movimientos?')) return;
-      containers = [];
-      movements = [];
-      saveLocal();
-      render();
-      try { await postToSheets({ action: 'clear_all' }); } catch (e) {}
+    document.getElementById('btnExportJson').addEventListener('click', () => {
+      if (!isAdminUnlocked) return;
+      const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'respaldo_contenedores_pirai.json';
+      a.click();
     });
 
-    document.getElementById('btnNewContainer').addEventListener('click', () => openModal('new'));
-    document.getElementById('btnNewOrderEmacruz').addEventListener('click', () => openModal('order'));
-    document.getElementById('btnSync').addEventListener('click', syncFromSheets);
-    document.getElementById('btnCancel').addEventListener('click', closeModal);
+    document.getElementById('btnImportJson').addEventListener('click', () => {
+      if (!isAdminUnlocked) return;
+      document.getElementById('fileJsonInput').click();
+    });
 
-    ['searchInput', 'filterTipo', 'filterEstado', 'filterCanal', 'filterDistrito'].forEach(id => {
-      document.getElementById(id).addEventListener('input', render);
+    document.getElementById('fileJsonInput').addEventListener('change', (e) => {
+      if (!isAdminUnlocked) return;
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const arr = JSON.parse(reader.result);
+          if (!Array.isArray(arr)) throw new Error('El JSON debe ser una lista');
+          records = arr.map(normalizeRecord).filter(r => r.id || r.lugar);
+          records.forEach(recordCountsInBackup);
+          saveLocal();
+          render();
+          setStatus(`Cargados ${records.length} registros desde archivo JSON.`);
+        } catch (err) {
+          setStatus(`Error al leer JSON: ${err.message}`, true);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('filterRegistro').addEventListener('change', () => {
+      manualDistritoSelected = false;
+      document.getElementById('filterDistrito').value = '';
+      render();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', () => {
+      if (!manualDistritoSelected) {
+        document.getElementById('filterDistrito').value = '';
+      }
+      render();
+    });
+
+    document.getElementById('filterDistrito').addEventListener('change', (e) => {
+      manualDistritoSelected = e.target.value !== '';
+      render();
+    });
+
+    ['filterTipo', 'filterCanal', 'filterUnidades', 'filterGps'].forEach(id => {
       document.getElementById(id).addEventListener('change', render);
     });
 
     isAdminUnlocked = sessionStorage.getItem(ADMIN_SESSION_KEY) === '1';
-    if (isAdminUnlocked) {
-      document.getElementById('adminTools').classList.add('unlocked');
-      document.getElementById('btnAdminToggle').classList.add('unlocked');
-      document.getElementById('btnAdminToggle').textContent = '🔓 Bloquear Admin';
-      document.getElementById('adminBadge').classList.add('active');
-    }
-
-    loadLocal();
+    applyAdminUiState();
+    initMap();
+    countsBackup = loadCountsBackup();
+    pendingMap = loadPending();
+    records = mergeServerAndLocal([], loadLocal());
+    saveLocal();
     render();
     syncFromSheets();
   </script>
