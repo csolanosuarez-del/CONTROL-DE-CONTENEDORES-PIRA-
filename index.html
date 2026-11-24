@@ -820,8 +820,8 @@
   <!-- Modal Diagnóstico Crudo -->
   <div id="debugBackdrop" class="modal-backdrop">
     <div class="modal">
-      <h3 style="margin-top:0">Diagnóstico de Datos (Hoja / Respaldo)</h3>
-      <div class="sync-status" style="margin-bottom:8px">Muestra el primer registro recibido de Google Sheets y el respaldo local de cantidades.</div>
+      <h3 style="margin-top:0">Diagnóstico de Datos (CONTENEDORES / Respaldo)</h3>
+      <div class="sync-status" style="margin-bottom:8px">Muestra el primer registro recibido de Google Sheets (CONTENEDORES) y el respaldo local.</div>
       <pre id="debugOutput" class="debug-pre">Cargando...</pre>
       <div class="modal-actions">
         <button id="btnCloseDebug" class="primary" type="button">Cerrar</button>
@@ -836,6 +836,7 @@
     const ADMIN_SESSION_KEY = 'pirai_admin_unlocked_v1';
     const STORAGE_KEY = 'pirai_contenedores_v1';
     const PENDING_KEY = 'pirai_contenedores_pending_v1';
+    const DELETED_KEY = 'pirai_contenedores_deleted_v1';
     const COUNTS_BACKUP_KEY = 'pirai_contenedores_last_counts_v1';
 
     const ALLOWED_TYPES = [
@@ -847,8 +848,10 @@
     const INITIAL_DATA = [];
 
     let records = [];
+    let movementsCache = [];
     let map, markersLayer;
     let pendingMap = {};
+    let deletedMap = {};
     let countsBackup = {};
     let lastRawSample = null;
     let isAdminUnlocked = false;
@@ -864,6 +867,31 @@
       if (!s) return '';
       if (s.includes('T')) return s.slice(0, 10);
       return s;
+    }
+
+    function loadDeleted() {
+      try {
+        const raw = localStorage.getItem(DELETED_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return {};
+        const now = Date.now();
+        const cleaned = {};
+        Object.keys(parsed).forEach(k => {
+          if (parsed[k] && parsed[k] > now) {
+            cleaned[k] = parsed[k];
+          }
+        });
+        return cleaned;
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveDeleted() {
+      try {
+        localStorage.setItem(DELETED_KEY, JSON.stringify(deletedMap));
+      } catch (e) {}
     }
 
     function applyAdminUiState() {
@@ -993,10 +1021,37 @@
       }
     }
 
+    function extractGpsFromObs(obs) {
+      if (!obs) return { lat: null, lng: null };
+      const match = String(obs).match(/\[GPS:([^\]]+)\]/);
+      if (!match) return { lat: null, lng: null };
+      const parts = match[1].split(',');
+      if (parts.length !== 2) return { lat: null, lng: null };
+      const lat = Number(parts[0].trim());
+      const lng = Number(parts[1].trim());
+      return {
+        lat: Number.isNaN(lat) ? null : lat,
+        lng: Number.isNaN(lng) ? null : lng
+      };
+    }
+
+    function extractCountsFromObs(obs) {
+      if (!obs) return null;
+      const match = String(obs).match(/\[CONTADORES_CANT:([^\]]+)\]/);
+      if (!match) return null;
+      try {
+        return JSON.parse(decodeURIComponent(match[1]));
+      } catch (e) {
+        return null;
+      }
+    }
+
     function stripMetaTags(obs) {
       return String(obs || '')
         .replace(/\s*\[BASE_DESGLOSE:[^\]]+\]\s*/g, '')
         .replace(/\s*\[EMACRUZ_ORDEN:[^\]]+\]\s*/g, '')
+        .replace(/\s*\[GPS:[^\]]+\]\s*/g, '')
+        .replace(/\s*\[CONTADORES_CANT:[^\]]+\]\s*/g, '')
         .trim();
     }
 
@@ -1022,6 +1077,18 @@
       if (!hasData) return cleanObs;
       const encoded = encodeURIComponent(JSON.stringify(meta));
       return cleanObs ? `${cleanObs} [EMACRUZ_ORDEN:${encoded}]` : `[EMACRUZ_ORDEN:${encoded}]`;
+    }
+
+    function attachGpsTag(obs, lat, lng) {
+      const cleanObs = String(obs || '').replace(/\s*\[GPS:[^\]]+\]\s*/g, '').trim();
+      if (lat === null || lng === null || Number.isNaN(lat) || Number.isNaN(lng)) return cleanObs;
+      return cleanObs ? `${cleanObs} [GPS:${lat},${lng}]` : `[GPS:${lat},${lng}]`;
+    }
+
+    function attachCountsTag(obs, countsObj) {
+      const cleanObs = String(obs || '').replace(/\s*\[CONTADORES_CANT:[^\]]+\]\s*/g, '').trim();
+      const encoded = encodeURIComponent(JSON.stringify(countsObj));
+      return cleanObs ? `${cleanObs} [CONTADORES_CANT:${encoded}]` : `[CONTADORES_CANT:${encoded}]`;
     }
 
     function toggleBaseFieldsVisibility() {
@@ -1202,43 +1269,51 @@
     }
 
     function normalizeRecord(raw) {
+      const obsRaw = String(raw.observaciones ?? raw.OBSERVACIONES ?? '').trim();
+      const countsMeta = extractCountsFromObs(obsRaw);
+      const gpsMeta = extractGpsFromObs(obsRaw);
+
       let op = parseNum(
-        raw.operativas ?? raw.OPERATIVOS ?? raw.operables ?? raw.OPERABLES
+        raw.operativas ?? raw.OPERATIVOS ?? raw.operables ?? raw.OPERABLES ?? countsMeta?.operativas
       );
       let noOp = parseNum(
-        raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS'] ?? raw.inoperables ?? raw.INOPERABLES
+        raw.noOperativas ?? raw.no_operativas ?? raw['NO OPERATIVOS'] ?? raw.inoperables ?? raw.INOPERABLES ?? countsMeta?.noOperativas
       );
       const standBy = parseNum(
-        raw.standBy ?? raw.stand_by ?? raw.relevo ?? raw['STAND BY'] ?? raw['STAND BY / RELEVO'] ?? raw['STAND BY (EN BASE)']
+        raw.standBy ?? raw.stand_by ?? raw.relevo ?? raw['STAND BY'] ?? raw['STAND BY / RELEVO'] ?? raw['STAND BY (EN BASE)'] ?? countsMeta?.standBy
       );
       const reparacion = parseNum(
-        raw.reparacion ?? raw.enReparacion ?? raw.en_reparacion ?? raw['EN REPARACION'] ?? raw['REPARACION'] ?? raw['REPARACIÓN'] ?? raw['REPARACION (EN BASE/TALLER)']
+        raw.reparacion ?? raw.enReparacion ?? raw.en_reparacion ?? raw['EN REPARACION'] ?? raw['REPARACION'] ?? raw['REPARACIÓN'] ?? raw['REPARACION (EN BASE/TALLER)'] ?? countsMeta?.reparacion
       );
       const rawCant = parseNum(raw.cantidad ?? raw.CANTIDAD);
 
-      if (op === 0 && noOp === 0 && rawCant > 0) {
+      if (op === 0 && noOp === 0 && standBy === 0 && reparacion === 0) {
         const estRaw = String(raw.estado ?? raw.ESTADO ?? '').toLowerCase();
-        if (estRaw.includes('no op') || estRaw.includes('inoper')) {
-          noOp = rawCant;
-        } else {
+        const unitCount = rawCant > 0 ? rawCant : 1;
+        if (estRaw.includes('repar')) {
+          // reparación se maneja en base o por tag
+        } else if (estRaw.includes('stand')) {
+          // stand by
+        } else if (estRaw.includes('no op') || estRaw.includes('inoper')) {
+          noOp = unitCount;
+        } else if (rawCant > 0) {
           op = rawCant;
         }
       }
 
       const cant = op + noOp + standBy + reparacion;
 
-      const latRaw = raw.lat ?? raw.LAT;
-      const lngRaw = raw.lng ?? raw.LNG;
+      const latRaw = raw.lat ?? raw.LAT ?? gpsMeta.lat;
+      const lngRaw = raw.lng ?? raw.LNG ?? gpsMeta.lng;
       const latNum = (latRaw === '' || latRaw === null || latRaw === undefined) ? NaN : Number(String(latRaw).replace(',', '.').trim());
       const lngNum = (lngRaw === '' || lngRaw === null || lngRaw === undefined) ? NaN : Number(String(lngRaw).replace(',', '.').trim());
       const lat = Number.isNaN(latNum) ? null : latNum;
       const lng = Number.isNaN(lngNum) ? null : lngNum;
 
       const distRaw = raw.distrito ?? raw.DISTRITO;
-      const idClean = String(raw.id ?? raw.ID ?? '').trim();
-      const lugarClean = String(raw.lugar ?? raw.LUGAR ?? '').trim();
+      const idClean = String(raw.id ?? raw.ID_CONTENEDOR ?? raw.ID ?? '').trim();
+      const lugarClean = String(raw.lugar ?? raw.UBICACION ?? raw.LUGAR ?? '').trim();
       const effectiveId = idClean || lugarClean;
-      const obsRaw = String(raw.observaciones ?? raw.OBSERVACIONES ?? '').trim();
 
       let baseDesglose = raw.baseDesglose || null;
       if (!baseDesglose && obsRaw.includes('[BASE_DESGLOSE:')) {
@@ -1246,7 +1321,7 @@
       }
 
       const emacruzMeta = extractEmacruzMetaFromObs(obsRaw) || {};
-      const tipoSolicitud = String(raw.tipoSolicitud ?? raw.TIPO_SOLICITUD ?? emacruzMeta.tipoSolicitud ?? 'Nuevo Punto').trim();
+      const tipoSolicitud = String(raw.tipoSolicitud ?? raw.ULTIMO_MOVIMIENTO ?? raw.TIPO_SOLICITUD ?? emacruzMeta.tipoSolicitud ?? 'Nuevo Punto').trim();
       const canalSolicitud = String(raw.canalSolicitud ?? raw.CANAL_SOLICITUD ?? emacruzMeta.canalSolicitud ?? 'Interno').trim();
       const solicitadoPor = String(raw.solicitadoPor ?? raw.SOLICITADO_POR ?? emacruzMeta.solicitadoPor ?? '').trim();
       const motivoOrden = String(raw.motivoOrden ?? raw.MOTIVO_ORDEN ?? emacruzMeta.motivoOrden ?? '').trim();
@@ -1256,7 +1331,9 @@
 
       const base = {
         id: effectiveId,
+        codigo: String(raw.codigo ?? raw.CODIGO ?? effectiveId).trim(),
         lugar: lugarClean || idClean,
+        zona: String(raw.zona ?? raw.ZONA ?? '').trim(),
         distrito: distRaw === '' || distRaw === undefined || distRaw === null ? '' : Number(distRaw),
         cantidad: cant,
         operativas: op,
@@ -1276,11 +1353,69 @@
         lng,
         supervisor: String(raw.supervisor ?? raw.SUPERVISOR ?? '').trim(),
         observaciones: obsRaw,
-        foto: String(raw.foto ?? raw.FOTO ?? '').trim(),
-        ultimaActualizacion: String(raw.ultimaActualizacion ?? raw['ULTIMA ACTUALIZACIÓN'] ?? '').trim()
+        foto: String(raw.foto ?? raw.FOTO_CONTENEDOR ?? raw.FOTO ?? '').trim(),
+        ultimaActualizacion: String(raw.ultimaActualizacion ?? raw.ACTUALIZADO ?? raw['ULTIMA ACTUALIZACIÓN'] ?? '').trim()
       };
       base.estado = calculateStatus(base);
       return base;
+    }
+
+    function toSheetContainerPayload(rec) {
+      const obsWithTags = attachCountsTag(
+        attachGpsTag(rec.observaciones, rec.lat, rec.lng),
+        {
+          operativas: parseNum(rec.operativas),
+          noOperativas: parseNum(rec.noOperativas),
+          standBy: parseNum(rec.standBy),
+          reparacion: parseNum(rec.reparacion)
+        }
+      );
+
+      return {
+        id: rec.id,
+        codigo: rec.codigo || rec.id,
+        tipo: rec.tipo || 'contenedor 1.5 m3',
+        distrito: rec.distrito ?? '',
+        zona: rec.zona || '',
+        ubicacion: rec.lugar || rec.id,
+        estado: calculateStatus(rec),
+        ultimo_movimiento: rec.tipoSolicitud || 'Alta / Inventario',
+        solicitado_por: rec.solicitadoPor || '',
+        canal_solicitud: rec.canalSolicitud || 'Interno',
+        motivo_orden: rec.motivoOrden || '',
+        fecha_solicitud: rec.fechaSolicitud || '',
+        fecha_ejecucion: rec.fechaEjecucion || '',
+        observaciones: obsWithTags,
+        foto_contenedor: rec.foto || '',
+        foto_orden_wa: rec.fotoOrdenWa || '',
+        actualizado: rec.ultimaActualizacion || new Date().toLocaleString()
+      };
+    }
+
+    function toSheetMovementPayload(rec, prevRec) {
+      return {
+        id_movimiento: 'MOV-' + Date.now(),
+        id_contenedor: rec.id,
+        codigo: rec.codigo || rec.id,
+        tipo: rec.tipo || 'contenedor 1.5 m3',
+        distrito_origen: prevRec ? (prevRec.distrito ?? '') : '',
+        zona_origen: prevRec ? (prevRec.zona || '') : '',
+        ubicacion_origen: prevRec ? (prevRec.lugar || '') : '',
+        distrito_destino: rec.distrito ?? '',
+        zona_destino: rec.zona || '',
+        ubicacion_destino: rec.lugar || rec.id,
+        estado_nuevo: calculateStatus(rec),
+        tipo_solicitud: rec.tipoSolicitud || 'Nuevo Punto',
+        canal_solicitud: rec.canalSolicitud || 'Interno',
+        solicitado_por: rec.solicitadoPor || '',
+        motivo_orden: rec.motivoOrden || '',
+        fecha_solicitud: rec.fechaSolicitud || '',
+        fecha_ejecucion: rec.fechaEjecucion || '',
+        observaciones: stripMetaTags(rec.observaciones),
+        foto_contenedor: rec.foto || '',
+        foto_orden_wa: rec.fotoOrdenWa || '',
+        actualizado: rec.ultimaActualizacion || new Date().toLocaleString()
+      };
     }
 
     function hasEmacruzOrder(rec) {
@@ -1741,19 +1876,29 @@
     }
 
     function mergeServerAndLocal(serverList, localList) {
+      const now = Date.now();
+      let deletedChanged = false;
+      Object.keys(deletedMap).forEach(k => {
+        if (!deletedMap[k] || deletedMap[k] <= now) {
+          delete deletedMap[k];
+          deletedChanged = true;
+        }
+      });
+      if (deletedChanged) saveDeleted();
+
       const mapById = new Map();
 
       localList.forEach(item => {
         const norm = normalizeRecord(item);
-        if (norm.id) mapById.set(norm.id, norm);
+        if (!norm.id || deletedMap[norm.id]) return;
+        mapById.set(norm.id, norm);
       });
 
-      const now = Date.now();
       let pendingChanged = false;
 
       serverList.forEach(item => {
         const norm = normalizeRecord(item);
-        if (!norm.id) return;
+        if (!norm.id || deletedMap[norm.id]) return;
         const prev = mapById.get(norm.id);
         const pendingEntry = pendingMap[norm.id];
         const pendingRec = (pendingEntry && pendingEntry.expiresAt > now)
@@ -1824,7 +1969,7 @@
 
       Object.keys(pendingMap).forEach(id => {
         const entry = pendingMap[id];
-        if (!entry || entry.expiresAt <= now) {
+        if (!entry || entry.expiresAt <= now || deletedMap[id]) {
           delete pendingMap[id];
           pendingChanged = true;
           return;
@@ -1842,7 +1987,7 @@
     }
 
     async function syncFromSheets() {
-      setStatus('Sincronizando desde Google Sheets...');
+      setStatus('Sincronizando desde CONTENEDORES...');
       try {
         const url = `${API_URL}?t=${Date.now()}`;
         const res = await fetch(url, { method: 'GET', redirect: 'follow' });
@@ -1852,12 +1997,15 @@
         try {
           data = JSON.parse(text);
         } catch (parseErr) {
-          throw new Error('Apps Script devolvió HTML en lugar de JSON (revisa permisos o vinculación a la hoja)');
+          throw new Error('Apps Script devolvió HTML en lugar de JSON (revisa permisos de implementación)');
         }
         if (!data.ok) throw new Error(data.error || 'Respuesta inválida');
 
-        const rawList = Array.isArray(data.records) ? data.records : [];
-        lastRawSample = rawList.length > 0 ? rawList[0] : { note: 'Hoja vacía' };
+        const rawList = Array.isArray(data.containers)
+          ? data.containers
+          : (Array.isArray(data.records) ? data.records : []);
+        movementsCache = Array.isArray(data.movements) ? data.movements : [];
+        lastRawSample = rawList.length > 0 ? rawList[0] : { note: 'Hoja CONTENEDORES vacía' };
 
         const serverRecords = rawList.map(normalizeRecord).filter(r => r.id || r.lugar);
 
@@ -1865,12 +2013,12 @@
           records = mergeServerAndLocal(serverRecords, records);
           saveLocal();
           render();
-          setStatus(`Sincronizado: ${serverRecords.length} en nube · ${records.length} activos (${new Date().toLocaleTimeString()})`);
+          setStatus(`Sincronizado: ${serverRecords.length} en CONTENEDORES · ${movementsCache.length} mov. (${new Date().toLocaleTimeString()})`);
         } else {
           records = mergeServerAndLocal([], records);
           saveLocal();
           render();
-          setStatus(`La hoja devolvió 0 registros. Se conservan ${records.length} registros locales.`);
+          setStatus(`CONTENEDORES devolvió 0 filas. Se conservan ${records.length} registros locales.`);
         }
       } catch (err) {
         records = mergeServerAndLocal([], records);
@@ -1880,7 +2028,7 @@
       }
     }
 
-    async function postToSheets(payload, useNoCors = false) {
+    async function postToSheets(payload, useNoCors = true) {
       if (useNoCors) {
         await fetch(API_URL, {
           method: 'POST',
@@ -1918,8 +2066,8 @@
       }
 
       const firstOk = confirm(
-        '⚠️ ATENCIÓN: "Subir a Nube" reemplazará los datos de la hoja en Google Sheets con los ' +
-        records.length + ' registros cargados en este dispositivo.\n\n' +
+        '⚠️ ATENCIÓN: "Subir a Nube" limpiará CONTENEDORES y MOVIMIENTOS_EMACRUZ y subirá los ' +
+        records.length + ' registros actuales.\n\n' +
         'Para editar o crear puntos en campo normalmente solo debes usar "Guardar y Sincronizar".\n\n' +
         '¿Deseas continuar?'
       );
@@ -1934,16 +2082,21 @@
         return;
       }
 
-      const batchSize = 25;
       try {
-        for (let i = 0; i < records.length; i += batchSize) {
-          const chunk = records.slice(i, i + batchSize);
-          const action = i === 0 ? 'seed' : 'append_batch';
-          setStatus(`Subiendo lote ${Math.floor(i / batchSize) + 1} (${Math.min(i + chunk.length, records.length)}/${records.length})...`);
-          await postToSheets({ action, records: chunk }, true);
-          await new Promise(r => setTimeout(r, 900));
+        setStatus('Limpiando hojas en Google Sheets...');
+        await postToSheets({ action: 'clear_all' }, true);
+        await new Promise(r => setTimeout(r, 900));
+
+        for (let i = 0; i < records.length; i++) {
+          const rec = records[i];
+          setStatus(`Subiendo ${rec.id} (${i + 1}/${records.length})...`);
+          await postToSheets({
+            action: 'upsert_container',
+            container: toSheetContainerPayload(rec)
+          }, true);
+          await new Promise(r => setTimeout(r, 350));
         }
-        setStatus('Envío completado. Verificando datos en Google Sheets...');
+        setStatus('Subida completada. Sincronizando con Google Sheets...');
         setTimeout(syncFromSheets, 2500);
       } catch (err) {
         setStatus(`Error al subir base: ${err.message}`, true);
@@ -2056,8 +2209,10 @@
 
       document.getElementById('debugOutput').textContent = JSON.stringify(
         {
-          primerRegistroHoja: sampleWithoutPhoto,
-          respaldoCantidadesLocal: countsBackup
+          primerFilaCONTENEDORES: sampleWithoutPhoto,
+          totalMovimientosEnHoja: movementsCache.length,
+          respaldoCantidadesLocal: countsBackup,
+          eliminadosRecientes: deletedMap
         },
         null,
         2
@@ -2076,8 +2231,11 @@
       const targetId = document.getElementById('btnDeleteRecord').dataset.targetId;
       if (!isAdminUnlocked || !targetId) return;
 
-      const ok = confirm(`¿Seguro que deseas borrar el registro "${targetId}"? Esta acción lo quitará del mapa y de la tabla.`);
+      const ok = confirm(`¿Seguro que deseas borrar el registro "${targetId}"? Se eliminará aquí y en la hoja CONTENEDORES.`);
       if (!ok) return;
+
+      deletedMap[targetId] = Date.now() + 600000;
+      saveDeleted();
 
       records = records.filter(r => r.id !== targetId);
       if (pendingMap[targetId]) {
@@ -2094,12 +2252,12 @@
       renderDetail(null);
       closeModal();
 
-      setStatus(`Registro ${targetId} eliminado localmente. Enviando orden de borrado a Google Sheets...`);
+      setStatus(`Eliminando "${targetId}" de CONTENEDORES en Google Sheets...`);
       try {
-        await postToSheets({ action: 'delete', id: targetId }, true);
-        setTimeout(syncFromSheets, 4000);
+        await postToSheets({ action: 'delete_container', id: targetId }, true);
+        setTimeout(syncFromSheets, 3500);
       } catch (err) {
-        setStatus(`Eliminado local; aviso al sincronizar borrado: ${err.message}`, true);
+        setStatus(`Eliminado local; error al enviar borrado a Sheets: ${err.message}`, true);
       }
     });
 
@@ -2201,9 +2359,19 @@
       const finalId = rawIdInput || (esBase ? (rawLugarInput || 'Base de Operaciones') : '');
       const finalLugar = rawLugarInput || (esBase ? 'Base de Operaciones' : finalId);
 
+      if (deletedMap[finalId]) {
+        delete deletedMap[finalId];
+        saveDeleted();
+      }
+
+      const prevIdx = records.findIndex(r => r.id === finalId);
+      const prevRec = prevIdx >= 0 ? records[prevIdx] : null;
+
       const updated = normalizeRecord({
         id: finalId,
+        codigo: prevRec?.codigo || finalId,
         lugar: finalLugar,
+        zona: prevRec?.zona || '',
         distrito: document.getElementById('fDistrito').value.trim(),
         cantidad: op + noOp + standBy + reparacion,
         operativas: op,
@@ -2229,8 +2397,7 @@
 
       recordCountsInBackup(updated);
 
-      const idx = records.findIndex(r => r.id === updated.id);
-      if (idx >= 0) records[idx] = updated;
+      if (prevIdx >= 0) records[prevIdx] = updated;
       else records.push(updated);
 
       pendingMap[updated.id] = {
@@ -2243,10 +2410,16 @@
       renderDetail(updated);
       closeModal();
 
-      setStatus(`Guardado local de ${updated.id} (${updated.estado}). Enviando a Google Sheets...`);
+      const shouldLogMovement = hasEmacruzOrder(updated) || Boolean(prevRec);
+
+      setStatus(`Guardado local de ${updated.id} (${updated.estado}). Enviando a CONTENEDORES...`);
       try {
-        await postToSheets({ action: 'upsert', record: updated }, true);
-        setTimeout(syncFromSheets, 6000);
+        await postToSheets({
+          action: 'upsert_container',
+          container: toSheetContainerPayload(updated),
+          movement: shouldLogMovement ? toSheetMovementPayload(updated, prevRec) : null
+        }, true);
+        setTimeout(syncFromSheets, 5500);
       } catch (err) {
         setStatus(`Guardado local; error en nube: ${err.message}`, true);
       }
@@ -2338,6 +2511,7 @@
     initMap();
     countsBackup = loadCountsBackup();
     pendingMap = loadPending();
+    deletedMap = loadDeleted();
     records = mergeServerAndLocal([], loadLocal());
     saveLocal();
     render();
